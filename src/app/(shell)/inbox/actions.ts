@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { capturarRegistroBruto } from "@/inbox/application/capturar-registro-bruto";
 import { responderSugestao } from "@/inbox/application/responder-sugestao";
 import { solicitarNovaSugestao } from "@/inbox/application/solicitar-nova-sugestao";
@@ -49,13 +50,12 @@ export async function capturarArquivoAction(formData: FormData) {
   const arquivo = formData.get("arquivo") as File | null;
 
   if (!arquivo) {
-    throw new Error("Nenhum arquivo enviado.");
+    redirect(`/inbox?erro=${encodeURIComponent("Nenhum arquivo enviado.")}`);
   }
 
   if (arquivo.size > TAMANHO_MAXIMO_UPLOAD_BYTES) {
-    throw new Error(
-      `Arquivo muito grande (${(arquivo.size / (1024 * 1024)).toFixed(1)}MB). O limite é ${TAMANHO_MAXIMO_UPLOAD_BYTES / (1024 * 1024)}MB.`
-    );
+    const mensagem = `Arquivo muito grande (${(arquivo.size / (1024 * 1024)).toFixed(1)}MB). O limite é ${TAMANHO_MAXIMO_UPLOAD_BYTES / (1024 * 1024)}MB.`;
+    redirect(`/inbox?erro=${encodeURIComponent(mensagem)}`);
   }
 
   try {

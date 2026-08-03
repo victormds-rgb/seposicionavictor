@@ -32,6 +32,7 @@ export default async function InboxPage({
     origem?: string;
     busca?: string;
     reuniaoId?: string;
+    erro?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -104,6 +105,7 @@ export default async function InboxPage({
 
       <section aria-labelledby="capturar-arquivo">
         <h2 id="capturar-arquivo">Capturar (arquivo)</h2>
+        {params.erro ? <p role="alert">{params.erro}</p> : null}
         <form action={capturarArquivoAction}>
           <label>
             Tipo de entrada

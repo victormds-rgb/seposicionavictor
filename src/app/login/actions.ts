@@ -31,5 +31,11 @@ export async function signIn(formData: FormData) {
     redirect(`/login?erro=${encodeURIComponent(resultado.error.message)}`);
   }
 
-  redirect("/");
+  // Redireciona direto para /dashboard (Sprint 15 — Green Deploy): "/"
+  // é só um redirect-through para "/dashboard" (RootPage, src/app/page.tsx)
+  // — pular esse salto intermediário evita um redirect() encadeado
+  // dentro da mesma transição client-side do Server Action, que em
+  // build de produção quebrava com "client-side exception" no client
+  // router do Next.js. O destino final é o mesmo de sempre.
+  redirect("/dashboard");
 }
