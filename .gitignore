@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# build
+build/
+dist/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# testing
+coverage/
+test-results/
+playwright-report/
+tests/e2e/.auth/
+
+# misc
+.DS_Store
+*.log
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

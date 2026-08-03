@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "alerta_tipo_entidade_ativo_idx" ON "alerta" USING btree ("tipo","entidade_relacionada_id") WHERE "alerta"."status" = 'ativo';
