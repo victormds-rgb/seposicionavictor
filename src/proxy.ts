@@ -9,7 +9,10 @@ interface CookieToSet {
 }
 
 /**
- * Middleware global de autenticação — Sprint 0.
+ * Proxy (middleware) global de autenticação — Sprint 0, renomeado de
+ * `middleware.ts` para `proxy.ts` na Sprint 15 (Green Deploy) — o
+ * convention de arquivo `middleware` foi depreciado no Next.js 16 em
+ * favor de `proxy` (mesmo runtime, mesma função, só o nome muda).
  *
  * Sistema pessoal, usuário único (SOFTWARE_SPEC.md, seção 2 — Persona
  * única). Não há papéis ou permissões diferenciadas: qualquer sessão
@@ -17,7 +20,7 @@ interface CookieToSet {
  * acesso não autorizado (IMPLEMENTATION_PLAN.md, Sprint 0, critério
  * de aceite), não implementar navegação (Sprint 1).
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

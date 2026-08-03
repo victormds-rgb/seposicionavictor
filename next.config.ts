@@ -15,21 +15,22 @@ import type { NextConfig } from "next";
 // teto defensivo — a validação de negócio (com mensagem amigável)
 // continua sendo o limite efetivo de 10MB.
 //
-// `middlewareClientMaxBodySize`: limite SEPARADO e independente do
-// `bodySizeLimit` acima — o middleware de autenticação (src/middleware.ts)
-// roda em toda rota, inclusive POSTs de Server Action, e por padrão só
-// deixa passar os primeiros 10MB do corpo da requisição antes mesmo
-// dela chegar à Server Action. Mesmo com `bodySizeLimit` maior, um
-// upload de exatamente 10MB era truncado aqui, causando "Unexpected
-// end of form" ao invés da validação amigável. Mesma margem de 12mb
-// pelo mesmo motivo.
+// `proxyClientMaxBodySize`: limite SEPARADO e independente do
+// `bodySizeLimit` acima — o proxy de autenticação (src/proxy.ts,
+// renomeado de middleware.ts no Next.js 16) roda em toda rota,
+// inclusive POSTs de Server Action, e por padrão só deixa passar os
+// primeiros 10MB do corpo da requisição antes mesmo dela chegar à
+// Server Action. Mesmo com `bodySizeLimit` maior, um upload de
+// exatamente 10MB era truncado aqui, causando "Unexpected end of
+// form" ao invés da validação amigável. Mesma margem de 12mb pelo
+// mesmo motivo.
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: {
       bodySizeLimit: "12mb",
     },
-    middlewareClientMaxBodySize: "12mb",
+    proxyClientMaxBodySize: "12mb",
   },
 };
 
