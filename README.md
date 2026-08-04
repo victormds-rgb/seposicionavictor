@@ -13,9 +13,11 @@ documentos congelados (ordem de precedência completa em
 [`docs/ENGINEERING_MANIFEST.md`](docs/ENGINEERING_MANIFEST.md), leitura
 obrigatória descrita em [`docs/START_HERE.md`](docs/START_HERE.md)).
 
-**Status:** Sprints 0–12 concluídas (Fundação → Shell → Inbox → Agenda →
+**Status:** Sprints 0–16 concluídas (Fundação → Shell → Inbox → Agenda →
 Pipeline Comercial → Projetos → Conteúdo → Conhecimento → Brand Intelligence
-→ IA → Hardening → Testes E2E → Produção/Operação). Ver
+→ IA → Hardening → Testes E2E → Produção/Operação → Boot → Hardening Final
+→ Green Deploy → Release Candidate). Homologado como pronto para produção —
+ver [`RELEASE_NOTES.md`](RELEASE_NOTES.md). Ver
 [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) para o roadmap
 completo de Sprints.
 
@@ -36,10 +38,12 @@ completo de Sprints.
 - [IA](#ia)
 - [Brand Intelligence](#brand-intelligence)
 - [Google Workspace](#google-workspace)
+- [Produção](#produção)
 - [Healthcheck](#healthcheck)
 - [Estrutura de pastas](#estrutura-de-pastas)
 - [Fluxo arquitetural](#fluxo-arquitetural-de-uma-informação)
 - [Regras não-negociáveis](#regras-não-negociáveis)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -66,7 +70,7 @@ portas) ← consumida por **Presentation**. Regra de dependência:
 
 ## Stack
 
-- **Next.js 15** (App Router) + **React 19** + **TypeScript**
+- **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript**
 - **Tailwind CSS**
 - **PostgreSQL via Supabase** (Auth + Storage + Postgres — sem Edge
   Functions, sem lógica de negócio no Supabase)
@@ -475,36 +479,56 @@ documentação operacional do que já existe em código.**
 
 ---
 
+## Produção
+
+```bash
+npm run build   # Turbopack (padrão desde o Next.js 16), inclui typecheck e geração das páginas
+npm start       # next start — sobe o build de produção
+```
+
+`NODE_ENV=production` é setado automaticamente pelo próprio Next.js em
+`next build`/`next start` (não precisa exportar isso à mão). Isso muda
+comportamento real da aplicação, sem qualquer flag adicional:
+
+- **Pool de conexões** cai para `max: 1` (ver [Pool de conexões](#pool-de-conexões)) — pensado para runtimes serverless.
+- **IA** deixa de aceitar o modo fake — `OPENROUTER_API_KEY` ausente vira erro real (ver [IA](#ia)).
+- **Erros de negócio** (ex.: limite de upload excedido) são comunicados via
+  `redirect()` com mensagem amigável na URL, nunca via exceção não tratada —
+  evita a tela genérica "Application error" que o React usa em produção
+  para qualquer erro não tratado explicitamente.
+
+Variáveis obrigatórias em produção são as mesmas do [Quickstart](#quickstart-do-zero-em-15-minutos):
+`DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY` — a aplicação recusa subir sem elas (ver
+[Variáveis de ambiente](#variáveis-de-ambiente)). Deploy alvo: **Vercel**
+(mas nada aqui depende de API exclusiva da Vercel — qualquer host Node.js
+20+ que rode `next start` funciona).
+
 ## Healthcheck
 
 ```
 GET /health
 ```
 
-Rota pública (isenta de autenticação em `src/middleware.ts`) — sem sessão
+Rota pública (isenta de autenticação em `src/proxy.ts`) — sem sessão
 necessária, para monitoramento/orquestração externos.
 
 ```json
-{
-  "status": "ok",
-  "timestamp": "2026-07-31T12:00:00.000Z",
-  "uptime": 1234.5,
-  "version": "0.1.0",
-  "database": { "status": "ok", "latenciaMs": 8 },
-  "supabase": { "status": "ok", "latenciaMs": 35 },
-  "environment": {
-    "nodeEnv": "production",
-    "openrouterConfigurado": true,
-    "googleConfigurado": false
-  }
-}
+{ "status": "ok" }
 ```
 
-HTTP `200` quando `database` e `supabase` estão `ok` (os dois serviços dos
-quais a aplicação realmente depende para funcionar); `503` caso qualquer um
-falhe. OpenRouter e Google são opcionais nesta fase — sua ausência não
-torna a resposta `erro`, só aparece em `environment` para diagnóstico
-(nunca o valor da credencial, só se está configurada).
+ou, em caso de falha:
+
+```json
+{ "status": "erro" }
+```
+
+HTTP `200` quando Postgres e Supabase Auth (os dois serviços dos quais a
+aplicação realmente depende) respondem; `503` caso qualquer um falhe.
+Resposta pública endurecida na Sprint 14 (Hardening Final) — **nunca**
+inclui stacktrace, mensagem do driver, timestamp, versão ou qualquer outro
+detalhe interno; isso vai só para o `logger` (`infra/logging/logger.ts`),
+nunca para a resposta HTTP.
 
 ---
 
@@ -564,3 +588,48 @@ Captura (Inbox) → Persistência inicial (RegistroBruto)
   (nova tabela, coluna, enum, índice) deve primeiro estar refletida em
   `docs/DATABASE.md`; editar apenas o Drizzle sem isso é uma violação
   do `ENGINEERING_MANIFEST.md`.
+
+---
+
+## Troubleshooting
+
+**"Variáveis de ambiente ausentes ou inválidas" ao subir a aplicação**
+`config/env.ts` valida tudo via Zod no boot — a exceção lançada lista
+exatamente quais variáveis faltam. Confira `.env.local` contra
+`.env.example` (ver [Variáveis de ambiente](#variáveis-de-ambiente)).
+
+**`db:migrate`, `db:seed` ou `jobs:run` não enxergam `.env.local`**
+Esses scripts rodam via `tsx`, que — diferente de `next dev`/`next build` —
+não carrega `.env.local` automaticamente. Os scripts em `package.json` já
+usam a flag nativa `tsx --env-file=.env.local <script>`; se você rodar um
+script `tsx` novo manualmente, adicione a mesma flag (ou
+`node --env-file=.env.local`).
+
+**Upload na Inbox falha com "Nenhum registro encontrado" ou erro de Storage**
+O bucket (`SUPABASE_STORAGE_BUCKET_INBOX`, padrão `inbox-arquivos`) precisa
+existir de verdade no painel do Supabase — nenhuma migration ou seed cria
+buckets (ver [Dependências implícitas](#dependências-implícitas)).
+
+**Tela de Conteúdo/Conhecimento aparece vazia (`<select>` sem opções)**
+`npm run db:seed` ainda não rodou — Pilares, Séries Fixas, Frameworks,
+Temas e Regras de Decisão (Reference Data) só existem depois do seed.
+
+**Login redireciona de volta para `/login` mesmo com credenciais corretas**
+Confirme que o usuário foi criado no Supabase Auth (painel →
+Authentication → Users) — este sistema é single-user e não tem tela de
+cadastro própria.
+
+**Testes de integração falham na inicialização**
+`tests/integration/**` precisa de `DATABASE_URL` real com migrations
+aplicadas — sem isso, a suíte falha ao validar o ambiente (não
+silenciosamente). Rode `npm run db:migrate` antes.
+
+**`npm run test:e2e` falha ao logar**
+Confirme `E2E_USER_EMAIL`/`E2E_USER_PASSWORD` em `.env.local`, apontando
+para um usuário real do Supabase Auth (nunca um usuário de produção — ver
+[Testes E2E](#testes-e2e)).
+
+**`EADDRINUSE` / porta já em uso ao rodar `next dev`/`next start`**
+Outro processo (uma execução anterior não encerrada) já está escutando a
+porta. Encerre o processo Node.js pendente ou rode numa porta diferente
+(`next dev --port 3001`).
