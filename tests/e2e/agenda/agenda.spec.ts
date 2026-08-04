@@ -25,8 +25,29 @@ import { dataHoraLocalDaquiA } from "../fixtures/datas";
  * execuções próximas no tempo) gerem o mesmo horário exibido e colidam
  * no filtro.
  */
+// A página de Agenda só lista itens dentro da semana atual (segunda a
+// domingo — ver inicioDaSemanaAtual() em src/app/(shell)/agenda/page.tsx).
+// O jitter não pode ultrapassar esse limite ou o item criado nunca
+// aparece na tela.
+function minutosAteFimDaSemana(): number {
+  const agora = new Date();
+  const diaSemana = agora.getDay(); // 0 = domingo
+  const diasAteDomingo = diaSemana === 0 ? 0 : 7 - diaSemana;
+  const fimDaSemana = new Date(agora);
+  fimDaSemana.setDate(agora.getDate() + diasAteDomingo);
+  fimDaSemana.setHours(23, 59, 0, 0);
+  return Math.floor((fimDaSemana.getTime() - agora.getTime()) / 60_000);
+}
+
 function minutosComJitter(base: number): number {
-  return base + Math.floor(Math.random() * 180);
+  // Sprint 15 — Green Deploy: janela dinâmica (era uma constante de 180
+  // min) — com muitas execuções acumuladas no mesmo dia (mesmo ambiente
+  // de homologação, sem reset entre rodadas), uma janela fixa pequena
+  // colidia por acaso com horários de rodadas anteriores. Usa o máximo
+  // de entropia disponível até o fim da semana (com folga de segurança),
+  // sem nunca ultrapassar o limite real da visão semanal da Agenda.
+  const margemSegura = Math.max(minutosAteFimDaSemana() - base - 30, 60);
+  return base + Math.floor(Math.random() * margemSegura);
 }
 test.describe("Agenda", () => {
   test("criar reunião → aparece na agenda → marcar como realizada", async ({ page }) => {
