@@ -103,7 +103,7 @@ describe("Notificações — Sprint 9 (integração, com volume real de dados)",
     const auditoriaSalva = await auditoriaDeDriftRepository.buscarPorId(resultado.auditoriaId);
     expect(auditoriaSalva?.status).toBe("concluida");
     expect(auditoriaSalva?.pecasAvaliadas).toHaveLength(20);
-  });
+  }, 60_000); // cria 20 peças reais em sequência contra o Postgres real — mais lento que o timeout padrão sob rede real
 
   it("gera recomendação de pausa quando a falha ultrapassa 30%, nunca alterando o Fundamento", async () => {
     // Adiciona mais peças ruins para garantir ultrapassagem clara do limiar.
