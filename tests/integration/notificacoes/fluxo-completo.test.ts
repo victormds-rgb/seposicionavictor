@@ -185,7 +185,10 @@ describe("Notificações — Sprint 9 (integração, com volume real de dados)",
   });
 
   it("reconhecer e resolver alerta funcionam conforme as invariantes de transição", async () => {
-    const projeto = await criarProjeto(
+    // O retorno não é usado diretamente — a chamada existe para criar um
+    // Projeto real sem Build Log, que `verificarBuildLogAusente` abaixo
+    // precisa encontrar ao escanear todos os projetos.
+    await criarProjeto(
       { nome: "Albatroz OS — teste de resolução", tipo: "produto_proprio" },
       { projetoRepository }
     );

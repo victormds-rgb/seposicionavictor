@@ -14,7 +14,6 @@ describe("Fluxo completo de Brand Intelligence (integração)", () => {
   const documentoChunkRepository = new DrizzleDocumentoChunkRepository();
 
   it("não permite registrar duas vezes o mesmo arquivo do Google Drive", async () => {
-    const portaDeDrive = new FakePortaDeDrive();
     const fileId = `drive-id-${Date.now()}`;
 
     await registrarDocumentoOficial(
