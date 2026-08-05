@@ -107,13 +107,13 @@ nome `inbox-arquivos`, ou o nome que você colocou em
 ```bash
 npm run db:migrate   # aplica o schema (migrations/*.sql)
 npm run db:seed      # semeia Fundamento, Pilares, Séries Fixas, Conhecimento
-npm run dev           # http://localhost:3000
+npm run dev -- --port 3003   # http://localhost:3003
 ```
 
 Crie um usuário para logar (painel Supabase → **Authentication → Users →
 Add user**, ou pela própria tela de login se o projeto tiver signup
-habilitado) e acesse `http://localhost:3000`. Confirme que subiu de verdade
-em `http://localhost:3000/health` (ver [Healthcheck](#healthcheck)).
+habilitado) e acesse `http://localhost:3003`. Confirme que subiu de verdade
+em `http://localhost:3003/health` (ver [Healthcheck](#healthcheck)).
 
 Isso é tudo — sem `OPENROUTER_API_KEY` nem credenciais do Google, o sistema
 roda por completo (a classificação por IA cai em modo fake fora de produção,
@@ -631,5 +631,8 @@ para um usuário real do Supabase Auth (nunca um usuário de produção — ver
 
 **`EADDRINUSE` / porta já em uso ao rodar `next dev`/`next start`**
 Outro processo (uma execução anterior não encerrada) já está escutando a
-porta. Encerre o processo Node.js pendente ou rode numa porta diferente
-(`next dev --port 3001`).
+porta 3003 — a porta padrão de desenvolvimento deste projeto (usada por
+`npm run dev`, `playwright.config.ts` e `.claude/launch.json`). Encerre o
+processo Node.js pendente antes de subir de novo; não rode em outra
+porta como solução — ferramentas como o Playwright esperam
+especificamente `localhost:3003`.
