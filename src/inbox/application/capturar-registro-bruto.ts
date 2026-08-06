@@ -12,6 +12,7 @@ import type { IEventPublisher } from "@/shared/domain/i-event-publisher";
 import { classificarRegistroBruto } from "./classificar-registro-bruto";
 import type { PortaDeIA } from "@/ia/domain/porta-de-ia";
 import type { SugestaoIARepository } from "@/ia/domain/sugestao-ia-repository";
+import { logger } from "@infra/logging/logger";
 
 const capturarRegistroBrutoSchema = z
   .object({
@@ -107,17 +108,32 @@ export async function capturarRegistroBruto(
   // Classificação automática apenas quando o conteúdo textual já está
   // disponível — entradas binárias permanecem em `em_processamento`
   // até um pipeline de transcrição/OCR (fora do escopo desta Sprint).
+  //
+  // Best-effort (Sprint 22 — UX_REPORT.md): a captura em si (linhas
+  // acima) já persistiu com sucesso quando chegamos aqui — isso é o
+  // que importa para o usuário. Se a classificação falhar (ex.: sem
+  // OPENROUTER_API_KEY em produção, comportamento já documentado em
+  // config/env.ts), o registro simplesmente fica em `capturado`
+  // aguardando classificação manual depois — em vez de derrubar a
+  // página inteira com um erro genérico mesmo com o dado já salvo.
   if (status === "capturado" && registro.conteudoTexto) {
-    await classificarRegistroBruto(registro.id, {
-      registroBrutoRepository: deps.registroBrutoRepository,
-      portaDeIA: deps.portaDeIA,
-      sugestaoIARepository: deps.sugestaoIARepository,
-    });
-    // O status foi atualizado dentro de classificarRegistroBruto —
-    // o objeto local precisa refletir isso antes de ser retornado
-    // (bug real encontrado pelo teste de integração da Sprint 2).
-    const registroAtualizado = await deps.registroBrutoRepository.buscarPorId(registro.id);
-    return registroAtualizado ?? registro;
+    try {
+      await classificarRegistroBruto(registro.id, {
+        registroBrutoRepository: deps.registroBrutoRepository,
+        portaDeIA: deps.portaDeIA,
+        sugestaoIARepository: deps.sugestaoIARepository,
+      });
+      // O status foi atualizado dentro de classificarRegistroBruto —
+      // o objeto local precisa refletir isso antes de ser retornado
+      // (bug real encontrado pelo teste de integração da Sprint 2).
+      const registroAtualizado = await deps.registroBrutoRepository.buscarPorId(registro.id);
+      return registroAtualizado ?? registro;
+    } catch (erro) {
+      logger.warn("capturarRegistroBruto: classificação automática falhou, registro permanece capturado", {
+        registroBrutoId: registro.id,
+        erro: erro instanceof Error ? erro.message : String(erro),
+      });
+    }
   }
 
   return registro;

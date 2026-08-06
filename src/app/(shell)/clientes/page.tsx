@@ -27,6 +27,12 @@ export default async function ClientesPage() {
               <em>{cliente.status}</em>
             </p>
             <p>Classificação: {cliente.classificacaoResultante ?? "não avaliado"}</p>
+            {/* UX_REPORT.md — Sprint 22: sem isto, não havia forma de
+                obter o ID exigido pelo campo "Cliente (uuid)" em
+                Projetos a não ser consultando o banco diretamente. */}
+            <p>
+              ID (para criar Projeto): <code>{cliente.id}</code>
+            </p>
             {cliente.origemLeadId && <p>Origem: Lead {cliente.origemLeadId}</p>}
           </li>
         ))}
