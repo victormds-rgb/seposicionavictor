@@ -115,11 +115,21 @@ export async function executarAuditoriaDeDrift(deps: {
     // própria página de Auditoria — o Dashboard (que já lista Alertas
     // ativos) nunca refletia o problema. `garantirAlertaAtivo` é o
     // mesmo mecanismo idempotente já usado pelo MonitorDeConsistencia.
+    //
+    // Sprint 29 (dogfooding): a chave de deduplicação usada aqui
+    // precisa ser ESTÁVEL entre execuções — `auditoria.id` é gerado de
+    // novo a cada chamada desta função, então o índice único parcial
+    // (tipo, entidade_relacionada_id) nunca colidia e cada execução da
+    // auditoria criava um novo Alerta "ativo" mesmo com a condição
+    // inalterada (2 alertas duplicados observados em produção,
+    // exigindo Reconhecer/Resolver manual em cada um). `fundamento.id`
+    // é estável enquanto o mesmo Fundamento seguir ativo — mesma
+    // condição, mesmo Alerta, até ser resolvido.
     await garantirAlertaAtivo(
       "drift_critico",
       recomendacao ?? `Auditoria de Drift com ${percentualFalha}% de falha no checklist automatizável.`,
-      "auditoria_drift",
-      auditoria.id,
+      "fundamento",
+      fundamento.id,
       {
         alertaRepository: deps.alertaRepository,
         eventPublisher: deps.eventPublisher,

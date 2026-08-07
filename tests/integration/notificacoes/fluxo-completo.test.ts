@@ -153,6 +153,25 @@ describe("Notificações — Sprint 9 (integração, com volume real de dados)",
     expect(alertasAtivos[0]?.condicaoGatilho).toContain("Fundamento");
   });
 
+  it("Sprint 29 (dogfooding): rodar a Auditoria de Drift de novo não duplica o Alerta drift_critico já ativo", async () => {
+    // As peças ruins criadas nos testes anteriores continuam publicadas
+    // — esta execução também ultrapassa o limiar. Sem uma chave de
+    // deduplicação estável (fundamento.id em vez de auditoria.id, que
+    // muda a cada chamada), cada execução criaria um novo Alerta ativo.
+    const antes = await alertaRepository.listar({ status: "ativo", tipo: "drift_critico" });
+
+    await executarAuditoriaDeDrift({
+      auditoriaDeDriftRepository,
+      pecaDeConteudoRepository,
+      fundamentoRepository,
+      alertaRepository,
+      clock,
+    });
+
+    const depois = await alertaRepository.listar({ status: "ativo", tipo: "drift_critico" });
+    expect(depois).toHaveLength(antes.length);
+  }, 60_000);
+
   it("MonitorDeConsistencia: gera alerta de build_log_ausente para produto próprio sem publicação recente", async () => {
     const projeto = await criarProjeto(
       { nome: "Radar AI — teste de alerta", tipo: "produto_proprio" },
