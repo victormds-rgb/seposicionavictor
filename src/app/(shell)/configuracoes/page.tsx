@@ -90,12 +90,12 @@ export default async function ConfiguracoesPage() {
         <h2 id="ia">IA</h2>
         <dl>
           <dt>Provedor configurado</dt>
-          <dd>{env.OPENROUTER_API_KEY ? "Sim (OpenRouter)" : "Não"}</dd>
+          <dd>{env.OPENAI_API_KEY ? "Sim (OpenAI)" : "Não"}</dd>
         </dl>
-        {!env.OPENROUTER_API_KEY && env.NODE_ENV !== "production" && (
+        {!env.OPENAI_API_KEY && env.NODE_ENV !== "production" && (
           <p>Sem chave configurada: classificação da Inbox usa o modo fake (determinístico, sem rede).</p>
         )}
-        {!env.OPENROUTER_API_KEY && env.NODE_ENV === "production" && (
+        {!env.OPENAI_API_KEY && env.NODE_ENV === "production" && (
           <p>Sem chave configurada: a classificação da Inbox falhará ao ser usada.</p>
         )}
       </section>

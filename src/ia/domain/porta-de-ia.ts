@@ -3,7 +3,8 @@ import type { TipoDestino } from "@/shared/enums/tipo-destino";
 /**
  * Porta de IA — abstração que permite substituir o provider de IA
  * sem alterar Domain ou Application (stack aprovada: "Ports & Adapters
- * ... primeira implementação: OpenRouter"; ARCHITECTURE.md, seção 13).
+ * ... implementação: OpenAI"; ARCHITECTURE.md, seção 13; migrado de
+ * OpenRouter na Sprint 31A).
  */
 export interface ClassificacaoSugerida {
   tipoDestinoSugerido: TipoDestino;

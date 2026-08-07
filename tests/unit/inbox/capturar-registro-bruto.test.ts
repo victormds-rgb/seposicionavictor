@@ -8,7 +8,7 @@ import { FakeSugestaoIARepository } from "../ia/_fakes/fake-sugestao-ia-reposito
 /**
  * Regressão — Sprint 22 (UX_REPORT.md): capturar texto na Inbox não
  * pode derrubar a página inteira quando a classificação automática
- * por IA falha (ex.: OPENROUTER_API_KEY ausente em produção). A
+ * por IA falha (ex.: OPENAI_API_KEY ausente em produção). A
  * captura em si já persistiu com sucesso antes da classificação
  * rodar — isso precisa valer mesmo se a IA falhar.
  */
@@ -19,7 +19,7 @@ describe("capturarRegistroBruto — degradação graciosa quando a IA falha", ()
       portaDeArmazenamento: new FakePortaDeArmazenamentoBinario(),
       portaDeIA: {
         async classificarRegistroBruto(): Promise<never> {
-          throw new Error("OPENROUTER_API_KEY não configurada — não é possível classificar via OpenRouter.");
+          throw new Error("OPENAI_API_KEY não configurada — não é possível classificar via OpenAI.");
         },
       },
       sugestaoIARepository: new FakeSugestaoIARepository(),

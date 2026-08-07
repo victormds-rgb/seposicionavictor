@@ -112,7 +112,7 @@ export async function capturarRegistroBruto(
   // Best-effort (Sprint 22 — UX_REPORT.md): a captura em si (linhas
   // acima) já persistiu com sucesso quando chegamos aqui — isso é o
   // que importa para o usuário. Se a classificação falhar (ex.: sem
-  // OPENROUTER_API_KEY em produção, comportamento já documentado em
+  // OPENAI_API_KEY em produção, comportamento já documentado em
   // config/env.ts), o registro simplesmente fica em `capturado`
   // aguardando classificação manual depois — em vez de derrubar a
   // página inteira com um erro genérico mesmo com o dado já salvo.

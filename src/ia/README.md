@@ -1,6 +1,6 @@
 # IA / Assistência Inteligente
 
-**Status:** base implementada na Sprint 2 (SugestaoIA, Porta de IA com adapter OpenRouter, fluxo aceitar/editar/rejeitar). Auditoria completa (painel de custos, explicações detalhadas) prevista para a Sprint 9.
+**Status:** base implementada na Sprint 2 (SugestaoIA, Porta de IA com adapter OpenAI, fluxo aceitar/editar/rejeitar — adapter migrado de OpenRouter para a API oficial da OpenAI na Sprint 31A). Auditoria completa (painel de custos, explicações detalhadas) prevista para a Sprint 9.
 
 ## Responsabilidade
 

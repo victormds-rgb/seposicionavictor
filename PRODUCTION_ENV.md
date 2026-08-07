@@ -31,17 +31,19 @@ rapidamente. Ver [`README.md` § Pool de conexões](README.md#pool-de-conexões)
 | `SUPABASE_SERVICE_ROLE_KEY` | 🔴 | Chave privada (JWT longo) — **nunca exposta ao client, nunca em variável `NEXT_PUBLIC_*`** | Painel Supabase → Project Settings → API → `service_role` `secret` |
 | `SUPABASE_STORAGE_BUCKET_INBOX` | ⚪ | Nome do bucket (padrão `inbox-arquivos` se omitida) | Você mesmo escolhe o nome ao criar o bucket — precisa **existir de verdade** no painel (Storage → New bucket, privado), nenhuma migration cria buckets |
 
-## 3. OpenRouter — IA (classificação da Inbox)
+## 3. OpenAI — IA (classificação da Inbox)
 
 | Variável | Status | Valor esperado | Onde conseguir |
 |---|---|---|---|
-| `OPENROUTER_API_KEY` | 🟡 | Chave de API (`sk-or-...`) | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| `OPENAI_API_KEY` | 🟡 | Chave de API (`sk-...`) | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| `OPENAI_MODEL` | ⚪ | Nome do modelo (ex.: `gpt-5.5`) | Padrão `gpt-5.5` se ausente — só defina para usar outro modelo |
 
-**Sem ela, em produção**: a classificação automática da Inbox lança erro
-ao tentar rodar (o modo fake determinístico só existe fora de produção —
-ver [README § IA](README.md#ia)). A aplicação **sobe normalmente** sem
-essa variável; o erro só acontece se/quando alguém tentar capturar algo na
-Inbox. **Não bloqueia o deploy nem o boot da aplicação.**
+**Sem `OPENAI_API_KEY`, em produção**: a classificação automática da Inbox
+lança erro ao tentar rodar (o modo fake determinístico só existe fora de
+produção — ver [README § IA](README.md#ia)). A aplicação **sobe
+normalmente** sem essa variável; o erro só acontece se/quando alguém
+tentar capturar algo na Inbox. **Não bloqueia o deploy nem o boot da
+aplicação.**
 
 ## 3b. Scheduler — Vercel Cron
 
@@ -101,9 +103,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
-Todas as demais (`OPENROUTER_API_KEY`, `CRON_SECRET`, `GOOGLE_CLIENT_ID`,
-`GOOGLE_CLIENT_SECRET`, `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`,
-`DATABASE_POOL_MAX`) são genuinamente opcionais — a aplicação sobe e
+Todas as demais (`OPENAI_API_KEY`, `OPENAI_MODEL`, `CRON_SECRET`,
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `E2E_USER_EMAIL`,
+`E2E_USER_PASSWORD`, `DATABASE_POOL_MAX`) são genuinamente opcionais — a aplicação sobe e
 funciona sem elas, com degradação isolada e não-bloqueante nas
 funcionalidades específicas que dependem de cada uma. Ver Item 5 do
 processo de deploy desta Sprint para a confirmação ponto a ponto.

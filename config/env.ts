@@ -11,7 +11,7 @@ import { z } from "zod";
  * onde configurar, o que quebra sem elas):
  * 1. Database
  * 2. Supabase
- * 3. OpenRouter (IA)
+ * 3. OpenAI (IA)
  * 4. Google (Calendar/Drive/Gmail — documentação operacional apenas,
  *    nenhuma integração nova implementada nesta Sprint)
  * 5. Playwright / E2E
@@ -43,17 +43,23 @@ const envSchema = z.object({
   }),
   SUPABASE_STORAGE_BUCKET_INBOX: z.string().min(1).default("inbox-arquivos"),
 
-  // ── 3. OpenRouter — Porta de IA (src/ia/domain/porta-de-ia.ts) ─────
-  // Opcional: sem ela, a classificação automática da Inbox lança erro
-  // em produção; em desenvolvimento/teste, cai em modo fake (ver
+  // ── 3. OpenAI — Porta de IA (src/ia/domain/porta-de-ia.ts) ──────────
+  // Sprint 31A: único provedor de IA do projeto (SDK oficial `openai`,
+  // substitui o adapter OpenRouter). Opcional: sem ela, a classificação
+  // automática da Inbox lança erro em produção; em desenvolvimento/
+  // teste, cai em modo fake (ver
   // src/ia/infrastructure/providers/fake-local-porta-de-ia.ts).
-  // `.env.local` com a linha em branco ("OPENROUTER_API_KEY=") vira
-  // string vazia, não ausência — normalizada para undefined antes do
-  // `.min(1)` para não quebrar quando deixada de propósito em branco.
-  OPENROUTER_API_KEY: z.preprocess(
+  // `.env.local` com a linha em branco ("OPENAI_API_KEY=") vira string
+  // vazia, não ausência — normalizada para undefined antes do `.min(1)`
+  // para não quebrar quando deixada de propósito em branco.
+  OPENAI_API_KEY: z.preprocess(
     (v) => (v === "" ? undefined : v),
     z.string().min(1).optional()
   ),
+  // Opcional: modelo a usar nas chamadas de classificação. Sem ela, o
+  // adapter usa "gpt-5.5" como padrão (ver
+  // src/ia/infrastructure/providers/openai-provider.ts).
+  OPENAI_MODEL: z.preprocess((v) => (v === "" ? undefined : v), z.string().min(1).optional()),
 
   // ── 4. Google Workspace — Calendar/Drive/Gmail ──────────────────────
   // Documentação operacional completa: README.md, seção "Google

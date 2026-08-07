@@ -77,7 +77,7 @@ portas) ← consumida por **Presentation**. Regra de dependência:
 - **Drizzle ORM** (schema, migrations, query builder)
 - **Zod** (validação de entrada)
 - **Vitest** (unitário/integração) + **Playwright** (E2E)
-- Provedor de IA: **OpenRouter** (abstraído por porta — ver [IA](#ia))
+- Provedor de IA: **OpenAI** (abstraído por porta — ver [IA](#ia))
 - Deploy alvo: **Vercel**
 
 ---
@@ -115,7 +115,7 @@ Add user**, ou pela própria tela de login se o projeto tiver signup
 habilitado) e acesse `http://localhost:3003`. Confirme que subiu de verdade
 em `http://localhost:3003/health` (ver [Healthcheck](#healthcheck)).
 
-Isso é tudo — sem `OPENROUTER_API_KEY` nem credenciais do Google, o sistema
+Isso é tudo — sem `OPENAI_API_KEY` nem credenciais do Google, o sistema
 roda por completo (a classificação por IA cai em modo fake fora de produção,
 ver [IA](#ia); as integrações Google ainda não estão implementadas, ver
 [Google Workspace](#google-workspace)).
@@ -164,15 +164,16 @@ Nenhuma URL é hardcoded — o pool sempre usa `DATABASE_URL`.
 | `SUPABASE_SERVICE_ROLE_KEY` | sim | Painel Supabase → Project Settings → API (chave privada, nunca no client) |
 | `SUPABASE_STORAGE_BUCKET_INBOX` | não (default `inbox-arquivos`) | Precisa existir de verdade — criado manualmente no painel, **não** por migration |
 
-### 3. OpenRouter — opcional
+### 3. OpenAI — opcional
 
 | Variável | Obrigatória | Onde obter |
 |---|---|---|
-| `OPENROUTER_API_KEY` | não | [openrouter.ai/keys](https://openrouter.ai) |
+| `OPENAI_API_KEY` | não | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| `OPENAI_MODEL` | não (padrão `gpt-5.5`) | Nome do modelo a usar nas chamadas de classificação |
 
-Sem ela: em produção (`NODE_ENV=production`), a classificação da Inbox
-lança erro. Fora de produção, cai automaticamente em modo fake — ver
-[IA](#ia).
+Sem `OPENAI_API_KEY`: em produção (`NODE_ENV=production`), a classificação
+da Inbox lança erro. Fora de produção, cai automaticamente em modo fake —
+ver [IA](#ia).
 
 ### 3b. Scheduler — opcional, documentação em [Jobs e Scheduler](#jobs-e-scheduler)
 
@@ -302,18 +303,18 @@ essa sessão. O spec de Autenticação (`tests/e2e/auth/autenticacao.spec.ts`)
 roda num projeto à parte, sem sessão, porque precisa testar o login do
 zero.
 
-### OpenRouter — modo fake automático
+### OpenAI — modo fake automático
 
-`OPENROUTER_API_KEY` **não é obrigatória** para rodar os E2E. Fora de
+`OPENAI_API_KEY` **não é obrigatória** para rodar os E2E. Fora de
 produção (`NODE_ENV !== "production"` — que é sempre o caso quando o
 `webServer` do Playwright sobe via `next dev`), se a chave estiver ausente,
 `src/inbox/infrastructure/composicao.ts` usa
 `FakeLocalPortaDeIA` (`src/ia/infrastructure/providers/fake-local-porta-de-ia.ts`)
-em vez de `OpenRouterPortaDeIA` — classificação determinística, sem rede,
+em vez de `OpenAIPortaDeIA` — classificação determinística, sem rede,
 sem custo. **Essa troca nunca acontece em produção**: em produção, a
 ausência da chave continua lançando o mesmo erro de sempre.
 
-Se `OPENROUTER_API_KEY` estiver configurada, os mesmos testes passam
+Se `OPENAI_API_KEY` estiver configurada, os mesmos testes passam
 usando a API real, sem nenhuma mudança — nenhuma asserção depende do texto
 exato da sugestão.
 
@@ -420,13 +421,13 @@ idêntico ao de antes da Unit of Work existir.
 
 Toda chamada de IA passa por uma porta (`PortaDeIA`,
 `src/ia/domain/porta-de-ia.ts`), abstraindo o provider — Domain e
-Application nunca conhecem OpenRouter diretamente
+Application nunca conhecem OpenAI diretamente
 (`docs/ARCHITECTURE.md`, seção 13). Toda sugestão de IA vira uma
 `SugestaoIA` auditável (provider, modelo, tokens, custo) e **nunca escreve
 diretamente em um Aggregate Root** — sempre passa por confirmação humana
 (ADR-005; `responderSugestao`, `aceitar/editar/rejeitar`).
 
-- **Produção**: `OpenRouterPortaDeIA` (`src/ia/infrastructure/providers/openrouter-provider.ts`) — chamada real à API da OpenRouter. Requer `OPENROUTER_API_KEY`.
+- **Produção**: `OpenAIPortaDeIA` (`src/ia/infrastructure/providers/openai-provider.ts`) — chamada real à API oficial da OpenAI (SDK `openai`), modelo `OPENAI_MODEL` (padrão `gpt-5.5`). Requer `OPENAI_API_KEY`.
 - **Desenvolvimento/teste, sem a chave**: `FakeLocalPortaDeIA` (`src/ia/infrastructure/providers/fake-local-porta-de-ia.ts`) — classificação determinística e local, sem rede. A escolha entre os dois é feita em `src/inbox/infrastructure/composicao.ts`, gateada por `NODE_ENV !== "production"`; em produção o comportamento é sempre o mesmo de antes.
 
 ## Brand Intelligence
@@ -527,7 +528,7 @@ npm start       # next start — sobe o build de produção
 comportamento real da aplicação, sem qualquer flag adicional:
 
 - **Pool de conexões** cai para `max: 1` (ver [Pool de conexões](#pool-de-conexões)) — pensado para runtimes serverless.
-- **IA** deixa de aceitar o modo fake — `OPENROUTER_API_KEY` ausente vira erro real (ver [IA](#ia)).
+- **IA** deixa de aceitar o modo fake — `OPENAI_API_KEY` ausente vira erro real (ver [IA](#ia)).
 - **Erros de negócio** (ex.: limite de upload excedido) são comunicados via
   `redirect()` com mensagem amigável na URL, nunca via exceção não tratada —
   evita a tela genérica "Application error" que o React usa em produção

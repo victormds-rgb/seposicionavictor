@@ -67,7 +67,7 @@ para a lista completa e onde obter cada uma. Obrigatórias:
 
 Opcionais, mas com efeito real em produção se ausentes:
 
-- [ ] `OPENROUTER_API_KEY` — sem ela, em produção a classificação da Inbox
+- [ ] `OPENAI_API_KEY` — sem ela, em produção a classificação da Inbox
       **lança erro** (o modo fake só existe fora de produção).
 - [ ] `DATABASE_POOL_MAX` — só se o padrão automático (`max: 1` em
       produção) precisar de ajuste.

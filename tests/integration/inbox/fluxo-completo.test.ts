@@ -17,7 +17,7 @@ import { SystemUuidGenerator } from "@/shared/infrastructure/system-uuid-generat
  * humana → Persistência final → event_log), usando repositórios
  * Drizzle reais contra um Postgres real. Apenas a Porta de IA e a
  * Porta de Armazenamento são fakes (evita dependência de rede
- * externa — OpenRouter/Supabase Storage não estão acessíveis neste
+ * externa — OpenAI/Supabase Storage não estão acessíveis neste
  * ambiente de teste).
  *
  * Requer DATABASE_URL apontando para um Postgres com as migrations

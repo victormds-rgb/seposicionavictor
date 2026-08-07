@@ -10,7 +10,7 @@ import { dataHoraLocalDaquiA } from "../fixtures/datas";
  * (registro bruto associado) precisa que a captura textual seja
  * classificada, pois a invariante "Reuniao só é processada com
  * RegistroBruto associado CLASSIFICADO" (DOMAIN_MODEL.md) exige isso
- * — fora de produção, sem `OPENROUTER_API_KEY`, isso roda via
+ * — fora de produção, sem `OPENAI_API_KEY`, isso roda via
  * `FakeLocalPortaDeIA` automaticamente, sem precisar de chave real
  * nem pular o teste (ver src/inbox/infrastructure/composicao.ts).
  *

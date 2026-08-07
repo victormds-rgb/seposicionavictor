@@ -8,9 +8,9 @@ import { sufixoUnico } from "../fixtures/unique";
  * revisão → evento registrado. `capturarRegistroBruto` classifica
  * automaticamente qualquer entrada textual via `PortaDeIA`. Fora de
  * produção (`next dev`, que é o que o `webServer` do Playwright usa),
- * sem `OPENROUTER_API_KEY` configurada o sistema cai automaticamente
+ * sem `OPENAI_API_KEY` configurada o sistema cai automaticamente
  * em `FakeLocalPortaDeIA` (src/inbox/infrastructure/composicao.ts) —
- * o teste não precisa mais pular nem consumir a API real da OpenRouter.
+ * o teste não precisa mais pular nem consumir a API real da OpenAI.
  * Nenhuma asserção depende do texto exato da justificativa, então o
  * mesmo teste passa com o provider real OU o fake.
  *
