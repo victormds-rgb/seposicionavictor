@@ -174,6 +174,15 @@ Sem ela: em produção (`NODE_ENV=production`), a classificação da Inbox
 lança erro. Fora de produção, cai automaticamente em modo fake — ver
 [IA](#ia).
 
+### 3b. Scheduler — opcional, documentação em [Jobs e Scheduler](#jobs-e-scheduler)
+
+| Variável | Obrigatória | Onde obter |
+|---|---|---|
+| `CRON_SECRET` | não | Gerada por você (string aleatória longa) — configure o mesmo valor na Vercel |
+
+Sem ela: a rota `/api/cron/[job]` recusa toda requisição (fail-closed) e os
+Jobs voltam a depender de execução manual.
+
 ### 4. Google Workspace — opcional, documentação em [Google Workspace](#google-workspace)
 
 | Variável | Obrigatória | Onde obter |
@@ -342,11 +351,38 @@ Jobs disponíveis hoje:
 | `atualizar-itens-vencidos` | Marca ItemDeAgenda vencido como `perdido` |
 
 Ambos são idempotentes e seguros para execução concorrente (índice único
-parcial + `UPDATE` otimista + Unit of Work — ver Hardening). Em produção,
-esses Jobs devem ser agendados por um scheduler externo (Trigger.dev ou
-equivalente) chamando as mesmas funções de `infra/scheduler/jobs/` — nenhum
-deles roda mais durante o carregamento de página (Dashboard/Agenda só
-consultam dados).
+parcial + `UPDATE` otimista + Unit of Work — ver Hardening) — nenhum deles
+roda mais durante o carregamento de página (Dashboard/Agenda só consultam
+dados).
+
+### Execução automática (Vercel Cron)
+
+Desde a Sprint 30, os dois Jobs rodam sozinhos em produção, sem execução
+manual — [`vercel.json`](vercel.json) agenda o Vercel Cron para chamar
+`/api/cron/[job]` uma vez por dia:
+
+```json
+{
+  "crons": [
+    { "path": "/api/cron/monitor-de-consistencia", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/atualizar-itens-vencidos", "schedule": "10 6 * * *" }
+  ]
+}
+```
+
+A rota ([`src/app/api/cron/[job]/route.ts`](src/app/api/cron/[job]/route.ts))
+não contém nenhuma lógica nova — só chama exatamente a mesma função do
+registro em `infra/scheduler/jobs/index.ts`, a mesma que `npm run jobs:run`
+já chamava manualmente. Autenticação via `CRON_SECRET` (ver
+[Variáveis de ambiente](#variáveis-de-ambiente)): o Vercel Cron envia esse
+valor automaticamente como `Authorization: Bearer $CRON_SECRET` quando a
+env var existe no projeto; sem ela, a rota recusa (401) toda requisição —
+inclusive as do próprio Cron — e os Jobs voltam a depender de
+`npm run jobs:run` manual.
+
+`npm run jobs:run -- <nome-do-job>` continua funcionando normalmente para
+execução manual/depuração local — a rota HTTP é só mais uma forma de
+chamar a mesma função, não uma substituta.
 
 ## Event Dispatcher
 

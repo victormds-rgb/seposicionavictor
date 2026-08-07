@@ -50,9 +50,14 @@ export async function proxy(request: NextRequest) {
 
   // /health precisa ser público (Sprint 12 — Produção/Operação):
   // ferramentas de monitoramento/orquestração não têm sessão de
-  // usuário para autenticar.
+  // usuário para autenticar. /api/cron (Sprint 30 — Scheduler) pelo
+  // mesmo motivo: o Vercel Cron não tem cookie de sessão nenhum — a
+  // própria rota se autentica via CRON_SECRET (Authorization: Bearer),
+  // não via este Proxy.
   const isRotaPublica =
-    request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname === "/health";
+    request.nextUrl.pathname.startsWith("/login") ||
+    request.nextUrl.pathname === "/health" ||
+    request.nextUrl.pathname.startsWith("/api/cron");
 
   if (!user && !isRotaPublica) {
     const redirectUrl = new URL("/login", request.url);

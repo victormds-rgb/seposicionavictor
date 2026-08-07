@@ -64,6 +64,16 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
+  // ── 5b. Scheduler — Vercel Cron (infra/scheduler) ──────────────────
+  // Opcional: sem ela, a rota /api/cron/[job] recusa toda requisição
+  // (fail-closed — nunca roda um Job sem conseguir autenticar quem
+  // pediu). Gerada por você (qualquer string aleatória longa) e
+  // configurada também no painel da Vercel — o próprio Vercel Cron
+  // envia esse valor automaticamente como
+  // `Authorization: Bearer $CRON_SECRET` quando a env var existe no
+  // projeto (ver README.md, seção "Jobs e Scheduler").
+  CRON_SECRET: z.preprocess((v) => (v === "" ? undefined : v), z.string().min(1).optional()),
+
   // ── 5. Playwright / E2E (tests/e2e) ─────────────────────────────────
   // Só necessárias para rodar `npm run test:e2e` — usuário real do
   // Supabase Auth do projeto (nunca inventado pelos testes). Ver

@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/monitor-de-consistencia",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/atualizar-itens-vencidos",
+      "schedule": "10 6 * * *"
+    }
+  ]
+}

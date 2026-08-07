@@ -43,6 +43,18 @@ ver [README § IA](README.md#ia)). A aplicação **sobe normalmente** sem
 essa variável; o erro só acontece se/quando alguém tentar capturar algo na
 Inbox. **Não bloqueia o deploy nem o boot da aplicação.**
 
+## 3b. Scheduler — Vercel Cron
+
+| Variável | Status | Valor esperado | Onde conseguir |
+|---|---|---|---|
+| `CRON_SECRET` | 🟡 | String aleatória longa (ex.: `openssl rand -hex 32`) | Você mesmo gera — defina o **mesmo** valor aqui e em Project Settings → Environment Variables na Vercel |
+
+**Sem ela**: a aplicação **sobe normalmente** (não bloqueia o deploy) — mas
+a rota `/api/cron/[job]` recusa (401) toda requisição, inclusive as do
+Vercel Cron configurado em `vercel.json`, e `monitor-de-consistencia` /
+`atualizar-itens-vencidos` voltam a depender de execução manual
+(`npm run jobs:run`). Ver [README § Jobs e Scheduler](README.md#jobs-e-scheduler).
+
 ## 4. Google Workspace — Calendar / Drive / Gmail
 
 | Variável | Status | Valor esperado | Onde conseguir |
@@ -89,7 +101,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
-Todas as demais (`OPENROUTER_API_KEY`, `GOOGLE_CLIENT_ID`,
+Todas as demais (`OPENROUTER_API_KEY`, `CRON_SECRET`, `GOOGLE_CLIENT_ID`,
 `GOOGLE_CLIENT_SECRET`, `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`,
 `DATABASE_POOL_MAX`) são genuinamente opcionais — a aplicação sobe e
 funciona sem elas, com degradação isolada e não-bloqueante nas
