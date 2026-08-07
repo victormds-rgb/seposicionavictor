@@ -7,6 +7,13 @@ import { calcularDistribuicaoDePilares } from "@/conteudo/application/calcular-d
 import { criarDependenciasDeConteudo } from "@/conteudo/infrastructure/composicao";
 import { listarAlertas } from "@/notificacoes/application/gestao-de-alertas";
 import { criarDependenciasDeNotificacoes } from "@/notificacoes/infrastructure/composicao";
+import { listarLeads } from "@/pipeline_comercial/application/listar-leads";
+import { criarDependenciasDoPipelineComercial } from "@/pipeline_comercial/infrastructure/composicao";
+import { listarClientes } from "@/clientes/application/listar-clientes";
+import { criarDependenciasDeClientes } from "@/clientes/infrastructure/composicao";
+import { listarProjetos } from "@/projetos/application/listar-e-encerrar-projeto";
+import { criarDependenciasDeProjetos } from "@/projetos/infrastructure/composicao";
+import { listarPecasDeConteudo } from "@/conteudo/application/listar-pecas-de-conteudo";
 
 /**
  * Dashboard — estrutura definida na Sprint 1 (UI_UX.md, seção 5),
@@ -39,6 +46,9 @@ export default async function DashboardPage() {
   const depsInbox = criarDependenciasDaInbox();
   const depsConteudo = criarDependenciasDeConteudo();
   const depsNotificacoes = criarDependenciasDeNotificacoes();
+  const depsPipeline = criarDependenciasDoPipelineComercial();
+  const depsClientes = criarDependenciasDeClientes();
+  const depsProjetos = criarDependenciasDeProjetos();
 
   const hoje = new Date();
   const inicioDoDia = new Date(hoje);
@@ -64,9 +74,42 @@ export default async function DashboardPage() {
     { alertaRepository: depsNotificacoes.alertaRepository }
   );
 
+  // Sprint 23B, item 2 (DOGFOODING_REPORT.md) — Dashboard Executivo:
+  // reaproveita os mesmos Use Cases já usados em Pipeline, Clientes,
+  // Projetos e Conteúdo. Sem gráfico, sem Use Case novo — só contagem
+  // filtrada em memória, mesmo padrão já usado acima em `desviosRelevantes`.
+  const leads = await listarLeads({}, { leadRepository: depsPipeline.leadRepository });
+  const leadsAtivos = leads.filter(
+    (l) => l.statusComercial !== "convertido_cliente" && l.statusComercial !== "perdido"
+  );
+
+  const clientes = await listarClientes({}, { clienteRepository: depsClientes.clienteRepository });
+
+  const projetos = await listarProjetos({}, { projetoRepository: depsProjetos.projetoRepository });
+  const projetosAtivos = projetos.filter((p) => p.status !== "encerrado");
+
+  const pecas = await listarPecasDeConteudo(
+    {},
+    { pecaDeConteudoRepository: depsConteudo.pecaDeConteudoRepository }
+  );
+  const conteudosEmProducao = pecas.filter((p) => p.status !== "publicado");
+  const conteudosPublicados = pecas.filter((p) => p.status === "publicado");
+
   return (
     <div>
       <h1>Dashboard</h1>
+
+      <section aria-labelledby="visao-geral">
+        <h2 id="visao-geral">Visão Geral</h2>
+        <ul>
+          <li>Leads ativos: {leadsAtivos.length}</li>
+          <li>Clientes: {clientes.length}</li>
+          <li>Projetos ativos: {projetosAtivos.length}</li>
+          <li>Conteúdos em produção: {conteudosEmProducao.length}</li>
+          <li>Conteúdos publicados: {conteudosPublicados.length}</li>
+          <li>Alertas ativos: {alertasAtivos.length}</li>
+        </ul>
+      </section>
 
       <section aria-labelledby="agenda-do-dia">
         <h2 id="agenda-do-dia">Agenda do dia</h2>

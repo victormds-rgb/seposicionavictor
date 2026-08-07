@@ -131,6 +131,13 @@ describe("Notificações — Sprint 9 (integração, com volume real de dados)",
     expect(resultado.recomendacao).not.toBeNull();
     expect(resultado.recomendacao).toContain("Fundamento");
 
+    // Sprint 23B, item 3: diagnóstico honesto — diz o critério real
+    // (tema/framework ausente ou frase-âncora repetida), nunca deixa
+    // supor uma causa que o checklist não avalia.
+    expect(resultado.recomendacao).toContain("Diagnóstico:");
+    expect(resultado.recomendacao).toContain("sem tema/framework associado");
+    expect(resultado.recomendacao).toContain("nenhuma falha relacionada a Brand Intelligence");
+
     // Invariante: o Fundamento nunca é alterado por esta operação.
     const fundamento = await fundamentoRepository.buscarAtivo();
     expect(fundamento?.status).toBe("ativo");

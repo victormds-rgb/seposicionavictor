@@ -44,15 +44,27 @@ export interface PecaParaAuditoria {
  * 2. Peça autônoma sem tema nem framework associado (não seguiu nem
  *    Prova/Portfólio nem a árvore do Cap. 2.6 de forma identificável).
  */
+/**
+ * Sprint 23B, item 3 (DOGFOODING_REPORT.md): extraídas como funções
+ * nomeadas — mesmas duas condições de sempre, comportamento de
+ * `falhouChecklistAutomatizavel` idêntico — só para permitir que o
+ * Use Case diga QUAL critério reprovou cada peça, em vez de expor só
+ * um booleano. Necessário para a mensagem de diagnóstico não induzir
+ * a uma causa que não é a real.
+ */
+export function repetiuFraseAncora(peca: PecaParaAuditoria, fraseAncora: string): boolean {
+  return !!peca.conteudoTexto?.includes(fraseAncora);
+}
+
+export function semLenteReconhecivel(peca: PecaParaAuditoria): boolean {
+  return peca.origemTipo === "autonomo" && !peca.temaId && !peca.frameworkId;
+}
+
 export function falhouChecklistAutomatizavel(
   peca: PecaParaAuditoria,
   fraseAncora: string
 ): boolean {
-  const repetiuFraseAncora = !!peca.conteudoTexto?.includes(fraseAncora);
-  const semLenteReconhecivel =
-    peca.origemTipo === "autonomo" && !peca.temaId && !peca.frameworkId;
-
-  return repetiuFraseAncora || semLenteReconhecivel;
+  return repetiuFraseAncora(peca, fraseAncora) || semLenteReconhecivel(peca);
 }
 
 export function calcularPercentualFalha(totalFalhas: number, totalAvaliadas: number): number {

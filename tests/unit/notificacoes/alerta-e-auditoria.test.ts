@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { podeSerReconhecido, podeSerResolvidoManualmente } from "@/notificacoes/domain/alerta";
 import {
   falhouChecklistAutomatizavel,
+  repetiuFraseAncora,
+  semLenteReconhecivel,
   calcularPercentualFalha,
   ultrapassouLimiar,
   gerarRecomendacao,
@@ -72,6 +74,16 @@ describe("AuditoriaDeDrift — checklist automatizável (proxy do SOM Cap. 1.8/2
         fraseAncora
       )
     ).toBe(false);
+  });
+
+  it("Sprint 23B, item 3: expõe qual critério específico falhou, para diagnóstico honesto", () => {
+    const semLente = { id: "5", conteudoTexto: "Solta.", origemTipo: "autonomo" as const, temaId: null, frameworkId: null };
+    expect(semLenteReconhecivel(semLente)).toBe(true);
+    expect(repetiuFraseAncora(semLente, fraseAncora)).toBe(false);
+
+    const comFrase = { id: "6", conteudoTexto: fraseAncora, origemTipo: "case" as const, temaId: null, frameworkId: null };
+    expect(repetiuFraseAncora(comFrase, fraseAncora)).toBe(true);
+    expect(semLenteReconhecivel(comFrase)).toBe(false);
   });
 });
 

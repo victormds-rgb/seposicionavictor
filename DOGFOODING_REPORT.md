@@ -1,9 +1,15 @@
 # Dogfooding Report — Sprint 23
 
-> **Sprint 23A (correções):** itens 1, 2 e 3 abaixo foram implementados
-> e validados em produção — ver seção "Status das correções" ao final
-> de cada um. Itens 4 em diante permanecem apenas como observação, sem
-> autorização para implementar ainda.
+> **Sprint 23A (correções):** #1, #3 e #4 abaixo foram implementados e
+> validados em produção — ver "Status" ao final de cada um.
+>
+> **Sprint 23B (correções):** #2, #5 e #6 também foram implementados e
+> validados em produção. O item #6 teve sua causa raiz **corrigida**
+> nesta sprint — a hipótese original (Brand Intelligence não
+> sincronizado) estava errada, ver "Status" abaixo.
+>
+> #7 e #8 permanecem apenas como observação, sem autorização para
+> implementar.
 
 Usei o sistema em produção (https://seposicionavictor.vercel.app) como se
 fosse eu assumindo a operação da Albatroz Digital num dia normal,
@@ -85,6 +91,13 @@ há `sugestaoPendente`. Teste novo:
 - **Solução mínima recomendada:** exibir `cliente.nome` ao lado do projeto quando `tipo = cliente_externo`, buscando pelo `clienteId` já salvo (um único `buscarPorId`, sem novo campo, sem nova tela).
 - **Tempo estimado:** ~30 min.
 
+**Status: ✅ Implementado (Sprint 23B).** `criarDependenciasDeProjetos()`
+passou a incluir `clienteRepository` (já existia em Clientes, só não
+era injetado em Projetos). Em `projetos/page.tsx`, para projetos
+`cliente_externo`, busca `cliente.nome` via `buscarPorId(clienteId)` e
+exibe ao lado do nome do projeto. Sem UUID na tela, sem campo novo,
+sem Use Case novo.
+
 **#3 — Auditoria de Drift detecta problema grave (100% de falha) mas isso não vira um Alerta rastreável nem aparece no Dashboard.**
 - **Onde:** Alertas → Auditoria de Drift.
 - **Por que atrapalha:** a mensagem "recomenda-se pausar produção nova e revisar o Fundamento" é um sinal operacional sério — mas fica só na tela de Alertas, dentro do histórico da auditoria, e some do radar do usuário assim que ele sai da página. `Alertas (0)` continua mostrando zero no Dashboard mesmo depois desse resultado. A automação existe (a auditoria roda e detecta), mas o sinal se perde antes de chegar em quem precisa agir.
@@ -129,11 +142,30 @@ não são `rotina_fixa`.
 - **Solução mínima recomendada:** uma linha de contagem simples (ex.: "3 Leads em aberto · 2 Projetos ativos"), sem gráfico, sem nova tela — só mais uma consulta simples já usada em outras páginas, reaproveitada aqui.
 - **Tempo estimado:** ~40 min.
 
+**Status: ✅ Implementado (Sprint 23B, como "Dashboard Executivo").**
+Nova seção "Visão Geral" no topo do Dashboard: Leads ativos, Clientes,
+Projetos ativos, Conteúdos em produção, Conteúdos publicados, Alertas
+ativos. Reaproveita 100% dos Use Cases já existentes (`listarLeads`,
+`listarClientes`, `listarProjetos`, `listarPecasDeConteudo`,
+`listarAlertas`) — zero Use Case novo, zero gráfico, só contagem
+filtrada em memória.
+
 **#6 — Mensagem de falha da Auditoria de Drift não diz a causa raiz.**
-- **Por que atrapalha:** o texto "100% falharam no checklist" parece indicar problema no conteúdo publicado — mas a causa real (confirmado ao investigar) é que o Brand Intelligence nunca foi sincronizado (Google Drive não configurado), então não existe base nenhuma para comparar. Isso pode levar a revisar o conteúdo errado.
-- **Frequência estimada:** toda vez que a auditoria roda sem Brand Intelligence sincronizado.
-- **Solução mínima recomendada:** se `0 chunks indexados`, trocar a mensagem por algo como "Auditoria não pôde avaliar — Brand Intelligence sem documentos indexados", em vez de reportar como falha de conteúdo.
+- **Por que atrapalha:** o texto "100% falharam no checklist" não diz por que uma peça específica falhou.
+- **Frequência estimada:** toda vez que a auditoria encontra falhas.
+- **Solução mínima recomendada original:** hipótese registrada aqui era de que a causa fosse Brand Intelligence sem sincronizar.
+- **⚠️ Causa raiz corrigida na Sprint 23B — a hipótese acima estava errada.** Reli `falhouChecklistAutomatizavel` linha a linha: o checklist automatizável **nunca consulta Brand Intelligence**. Ele só verifica (a) repetição literal da frase-âncora, ou (b) peça autônoma sem `temaId`/`frameworkId`. A causa real da minha peça de teste falhar foi (b) — e ela **sempre vai falhar por isso**, porque o formulário "Nova Peça (autônoma)" nem tem campo de Tema/Framework. Nada a ver com sincronização.
 - **Tempo estimado:** ~20 min.
+
+**Status: ✅ Implementado (Sprint 23B), com correção de causa raiz.**
+Extraídas `repetiuFraseAncora` e `semLenteReconhecivel` de dentro de
+`falhouChecklistAutomatizavel` (mesmo comportamento, só nomeadas) para
+permitir que o Use Case identifique qual critério reprovou cada peça.
+`executarAuditoriaDeDrift` agora acrescenta ao texto da recomendação
+um diagnóstico honesto: quantas peças falharam por falta de
+tema/framework vs. por repetir a frase-âncora, e afirma explicitamente
+que nenhuma falha é relacionada a Brand Intelligence — porque nunca é.
+Lógica/limiar da auditoria **não foram alterados**.
 
 **#7 — Submissão de formulários (Pipeline) apresentou comportamento não confiável em parte do teste.**
 - **Onde:** criação de Lead em Pipeline.

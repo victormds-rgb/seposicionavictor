@@ -3,6 +3,8 @@ import type { PecaDeConteudoRepository } from "@/conteudo/domain/peca-de-conteud
 import type { FundamentoRepository } from "@/fundamento/domain/fundamento";
 import {
   falhouChecklistAutomatizavel,
+  repetiuFraseAncora,
+  semLenteReconhecivel,
   calcularPercentualFalha,
   ultrapassouLimiar,
   gerarRecomendacao,
@@ -67,7 +69,20 @@ export async function executarAuditoriaDeDrift(deps: {
   );
 
   const percentualFalha = calcularPercentualFalha(falhas.length, pecas.length);
-  const recomendacao = gerarRecomendacao(percentualFalha);
+  const recomendacaoBase = gerarRecomendacao(percentualFalha);
+
+  // Sprint 23B, item 3: diagnóstico honesto — diz qual critério
+  // reprovou cada peça, em vez de deixar o usuário supor uma causa
+  // (ex.: Brand Intelligence não sincronizado) que o checklist nem
+  // avalia. Não altera se uma recomendação é gerada, nem o limiar —
+  // só acrescenta o "porquê" quando há recomendação.
+  const comFraseRepetida = falhas.filter((p) => repetiuFraseAncora(p, fundamento.fraseAncora)).length;
+  const semLente = falhas.filter((p) => semLenteReconhecivel(p)).length;
+  const diagnostico =
+    recomendacaoBase && falhas.length > 0
+      ? ` Diagnóstico: ${semLente} peça(s) sem tema/framework associado, ${comFraseRepetida} repetindo a frase-âncora do Fundamento — nenhuma falha relacionada a Brand Intelligence/sincronização.`
+      : "";
+  const recomendacao = recomendacaoBase ? recomendacaoBase + diagnostico : recomendacaoBase;
 
   await deps.auditoriaDeDriftRepository.atualizar(auditoria.id, {
     pecasAvaliadas: pecas.map((p) => p.id),

@@ -78,11 +78,18 @@ export default async function ProjetosPage() {
                 buildLogRepository: deps.buildLogRepository,
               });
               const camposCompletos = camposDeCaseCompletos(projeto);
+              // Sprint 23B, item 1: nome do Cliente na listagem —
+              // clienteId já existia, só faltava o lookup para exibição.
+              const cliente =
+                projeto.tipo === "cliente_externo" && projeto.clienteId
+                  ? await deps.clienteRepository.buscarPorId(projeto.clienteId)
+                  : null;
 
               return (
                 <li key={projeto.id}>
                   <p>
                     <strong>{projeto.nome}</strong> · {projeto.tipo} · <em>{projeto.status}</em>
+                    {cliente && <> · Cliente: {cliente.nome}</>}
                   </p>
                   <p>
                     Progresso dos 6 campos de case:{" "}
