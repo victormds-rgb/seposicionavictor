@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listarItensAgenda } from "@/agenda/application/listar-itens-agenda";
 import { criarDependenciasDaAgenda } from "@/agenda/infrastructure/composicao";
 import { ROTINA_SEMANAL_FIXA } from "@/agenda/domain/item-agenda";
@@ -14,12 +15,15 @@ import { criarDependenciasDeClientes } from "@/clientes/infrastructure/composica
 import { listarProjetos } from "@/projetos/application/listar-e-encerrar-projeto";
 import { criarDependenciasDeProjetos } from "@/projetos/infrastructure/composicao";
 import { listarPecasDeConteudo } from "@/conteudo/application/listar-pecas-de-conteudo";
+import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
+import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * Dashboard — estrutura definida na Sprint 1 (UI_UX.md, seção 5),
- * completada na Sprint 9 com dados reais nas 4 seções, agora que
- * todos os módulos correspondentes existem (Agenda/Sprint 3,
- * Inbox/Sprint 2, Pilares/Sprint 6, Alertas/Sprint 9).
+ * completada na Sprint 9 com dados reais, estilo Sprint 26.
  *
  * Apenas consulta dados — o MonitorDeConsistencia roda como Job do
  * Scheduler (`infra/scheduler/jobs/monitor-de-consistencia-job.ts`),
@@ -74,10 +78,6 @@ export default async function DashboardPage() {
     { alertaRepository: depsNotificacoes.alertaRepository }
   );
 
-  // Sprint 23B, item 2 (DOGFOODING_REPORT.md) — Dashboard Executivo:
-  // reaproveita os mesmos Use Cases já usados em Pipeline, Clientes,
-  // Projetos e Conteúdo. Sem gráfico, sem Use Case novo — só contagem
-  // filtrada em memória, mesmo padrão já usado acima em `desviosRelevantes`.
   const leads = await listarLeads({}, { leadRepository: depsPipeline.leadRepository });
   const leadsAtivos = leads.filter(
     (l) => l.statusComercial !== "convertido_cliente" && l.statusComercial !== "perdido"
@@ -97,81 +97,84 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1>Dashboard</h1>
+      <PageHeader title="Dashboard" />
 
-      <section aria-labelledby="visao-geral">
-        <h2 id="visao-geral">Visão Geral</h2>
-        <ul>
-          <li>Leads ativos: {leadsAtivos.length}</li>
-          <li>Clientes: {clientes.length}</li>
-          <li>Projetos ativos: {projetosAtivos.length}</li>
-          <li>Conteúdos em produção: {conteudosEmProducao.length}</li>
-          <li>Conteúdos publicados: {conteudosPublicados.length}</li>
-          <li>Alertas ativos: {alertasAtivos.length}</li>
-        </ul>
-      </section>
+      <div className="space-y-4">
+        <Section title="Visão Geral">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <StatCard label="Leads ativos" value={leadsAtivos.length} />
+            <StatCard label="Clientes" value={clientes.length} />
+            <StatCard label="Projetos ativos" value={projetosAtivos.length} />
+            <StatCard label="Conteúdos em produção" value={conteudosEmProducao.length} />
+            <StatCard label="Conteúdos publicados" value={conteudosPublicados.length} />
+            <StatCard label="Alertas ativos" value={alertasAtivos.length} />
+          </div>
+        </Section>
 
-      <section aria-labelledby="agenda-do-dia">
-        <h2 id="agenda-do-dia">Agenda do dia</h2>
-        {itensDoDia.length === 0 ? (
-          <p>Nenhum item de agenda hoje.</p>
-        ) : (
-          <ul>
-            {itensDoDia.map((item) => (
-              <li key={item.id}>
-                {item.dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} ·{" "}
-                {descreverItemDeAgenda(item)} · {item.status}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <Section title="Agenda do dia">
+          {itensDoDia.length === 0 ? (
+            <EmptyState message="Nenhum item de agenda hoje." />
+          ) : (
+            <ul className="space-y-2 text-sm text-zinc-700">
+              {itensDoDia.map((item) => (
+                <li key={item.id} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
+                  {item.dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} ·{" "}
+                  {descreverItemDeAgenda(item)} · {item.status}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
 
-      <section aria-labelledby="alertas-ativos">
-        <h2 id="alertas-ativos">Alertas ativos ({alertasAtivos.length})</h2>
-        {alertasAtivos.length === 0 ? (
-          <p>Nenhum alerta ativo — tudo em dia.</p>
-        ) : (
-          <ul>
-            {alertasAtivos.map((a) => (
-              <li key={a.id}>
-                <strong>{a.tipo}</strong>: {a.condicaoGatilho}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p>
-          <a href="/alertas">Ver todos os alertas</a>
-        </p>
-      </section>
+        <Section
+          title={`Alertas ativos (${alertasAtivos.length})`}
+          action={
+            <Link href="/alertas" className="text-sm text-zinc-500 hover:text-zinc-900">
+              Ver todos
+            </Link>
+          }
+        >
+          {alertasAtivos.length === 0 ? (
+            <EmptyState message="Nenhum alerta ativo — tudo em dia." />
+          ) : (
+            <ul className="space-y-2 text-sm text-zinc-700">
+              {alertasAtivos.map((a) => (
+                <li key={a.id} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
+                  <Badge variant="danger">{a.tipo}</Badge> <span className="ml-1">{a.condicaoGatilho}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
 
-      <section aria-labelledby="pendencias-inbox">
-        <h2 id="pendencias-inbox">Pendências da Inbox</h2>
-        {pendenciasInbox.length === 0 ? (
-          <p>Nenhuma pendência — Inbox em dia.</p>
-        ) : (
-          <p>
-            {pendenciasInbox.length} registro(s) aguardando revisão de sugestão de IA.{" "}
-            <a href="/inbox">Revisar agora</a>
-          </p>
-        )}
-      </section>
+        <Section title="Pendências da Inbox">
+          {pendenciasInbox.length === 0 ? (
+            <EmptyState message="Nenhuma pendência — Inbox em dia." />
+          ) : (
+            <p className="text-sm text-zinc-700">
+              {pendenciasInbox.length} registro(s) aguardando revisão de sugestão de IA.{" "}
+              <Link href="/inbox" className="text-zinc-900 underline">
+                Revisar agora
+              </Link>
+            </p>
+          )}
+        </Section>
 
-      <section aria-labelledby="distribuicao-pilares">
-        <h2 id="distribuicao-pilares">Distribuição de pilares</h2>
-        {desviosRelevantes.length === 0 ? (
-          <p>Distribuição de conteúdo alinhada à meta.</p>
-        ) : (
-          <ul>
-            {desviosRelevantes.map((d) => (
-              <li key={d.pilarId}>
-                {d.nome}: desvio de {d.desvio > 0 ? "+" : ""}
-                {d.desvio}% em relação à meta
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <Section title="Distribuição de pilares">
+          {desviosRelevantes.length === 0 ? (
+            <EmptyState message="Distribuição de conteúdo alinhada à meta." />
+          ) : (
+            <ul className="space-y-2 text-sm text-zinc-700">
+              {desviosRelevantes.map((d) => (
+                <li key={d.pilarId} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
+                  {d.nome}: desvio de {d.desvio > 0 ? "+" : ""}
+                  {d.desvio}% em relação à meta
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }
