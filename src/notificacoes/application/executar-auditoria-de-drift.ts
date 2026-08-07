@@ -1,4 +1,4 @@
-import type { AuditoriaDeDriftRepository } from "@/notificacoes/domain/notificacoes-repository";
+import type { AuditoriaDeDriftRepository, AlertaRepository } from "@/notificacoes/domain/notificacoes-repository";
 import type { PecaDeConteudoRepository } from "@/conteudo/domain/peca-de-conteudo-repository";
 import type { FundamentoRepository } from "@/fundamento/domain/fundamento";
 import {
@@ -7,7 +7,10 @@ import {
   ultrapassouLimiar,
   gerarRecomendacao,
 } from "@/notificacoes/domain/auditoria-de-drift";
+import { garantirAlertaAtivo } from "@/notificacoes/application/monitor-de-consistencia";
 import type { IEventPublisher } from "@/shared/domain/i-event-publisher";
+import type { Clock } from "@/shared/domain/clock";
+import type { UnitOfWork } from "@/shared/domain/unit-of-work";
 
 export class FundamentoNaoEncontradoError extends Error {}
 
@@ -28,7 +31,10 @@ export async function executarAuditoriaDeDrift(deps: {
   auditoriaDeDriftRepository: AuditoriaDeDriftRepository;
   pecaDeConteudoRepository: PecaDeConteudoRepository;
   fundamentoRepository: FundamentoRepository;
+  alertaRepository: AlertaRepository;
   eventPublisher?: IEventPublisher;
+  clock: Clock;
+  unitOfWork?: UnitOfWork;
 }) {
   const fundamento = await deps.fundamentoRepository.buscarAtivo();
   if (!fundamento) {
@@ -88,6 +94,24 @@ export async function executarAuditoriaDeDrift(deps: {
       actorTipo: "sistema",
       source: "notificacoes.executar_auditoria",
     });
+
+    // Sprint 23 — DOGFOODING_REPORT.md, item 2: sem isto, uma falha
+    // crítica detectada aqui só ficava visível no histórico desta
+    // própria página de Auditoria — o Dashboard (que já lista Alertas
+    // ativos) nunca refletia o problema. `garantirAlertaAtivo` é o
+    // mesmo mecanismo idempotente já usado pelo MonitorDeConsistencia.
+    await garantirAlertaAtivo(
+      "drift_critico",
+      recomendacao ?? `Auditoria de Drift com ${percentualFalha}% de falha no checklist automatizável.`,
+      "auditoria_drift",
+      auditoria.id,
+      {
+        alertaRepository: deps.alertaRepository,
+        eventPublisher: deps.eventPublisher,
+        clock: deps.clock,
+        unitOfWork: deps.unitOfWork,
+      }
+    );
   }
 
   return {

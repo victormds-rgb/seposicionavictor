@@ -6,6 +6,7 @@ import { capturarRegistroBruto } from "@/inbox/application/capturar-registro-bru
 import { responderSugestao } from "@/inbox/application/responder-sugestao";
 import { solicitarNovaSugestao } from "@/inbox/application/solicitar-nova-sugestao";
 import { descartarRegistroBruto } from "@/inbox/application/descartar-registro-bruto";
+import { classificarManualmente } from "@/inbox/application/classificar-manualmente";
 import { criarDependenciasDaInbox } from "@/inbox/infrastructure/composicao";
 import { logarFalhaEPropagar } from "@infra/logging/logger";
 
@@ -126,6 +127,23 @@ export async function descartarRegistroBrutoAction(formData: FormData) {
     });
   } catch (erro) {
     logarFalhaEPropagar("descartarRegistroBrutoAction", erro);
+  }
+  revalidatePath("/inbox");
+  revalidatePath("/dashboard");
+}
+
+export async function classificarManualmenteAction(formData: FormData) {
+  const deps = criarDependenciasDaInbox();
+  try {
+    await classificarManualmente(
+      {
+        registroBrutoId: String(formData.get("registroBrutoId")),
+        tipoDestinoEscolhido: String(formData.get("tipoDestinoEscolhido")),
+      },
+      { registroBrutoRepository: deps.registroBrutoRepository, eventPublisher: deps.eventPublisher, uuidGenerator: deps.uuidGenerator }
+    );
+  } catch (erro) {
+    logarFalhaEPropagar("classificarManualmenteAction", erro);
   }
   revalidatePath("/inbox");
   revalidatePath("/dashboard");

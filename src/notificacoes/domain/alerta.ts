@@ -3,7 +3,12 @@
  * SOM Cap. 8.
  */
 
-export const TIPOS_ALERTA = ["build_log_ausente", "auditoria_devida", "desvio_pilares"] as const;
+export const TIPOS_ALERTA = [
+  "build_log_ausente",
+  "auditoria_devida",
+  "desvio_pilares",
+  "drift_critico",
+] as const;
 export type TipoAlerta = (typeof TIPOS_ALERTA)[number];
 
 export const STATUS_ALERTA = ["ativo", "reconhecido", "resolvido"] as const;

@@ -1,5 +1,6 @@
 import { listarItensAgenda } from "@/agenda/application/listar-itens-agenda";
 import { criarDependenciasDaAgenda } from "@/agenda/infrastructure/composicao";
+import { ROTINA_SEMANAL_FIXA } from "@/agenda/domain/item-agenda";
 import { listarRegistrosBrutos } from "@/inbox/application/listar-registros-brutos";
 import { criarDependenciasDaInbox } from "@/inbox/infrastructure/composicao";
 import { calcularDistribuicaoDePilares } from "@/conteudo/application/calcular-distribuicao-de-pilares";
@@ -18,6 +19,20 @@ import { criarDependenciasDeNotificacoes } from "@/notificacoes/infrastructure/c
  * não durante a renderização (Hardening, ARCHITECTURE.md, seção 12).
  */
 export const dynamic = "force-dynamic";
+
+/**
+ * Sprint 23 — DOGFOODING_REPORT.md, item 3: sem isto, o Dashboard
+ * mostrava só o tipo genérico "rotina_fixa", sem dizer qual atividade
+ * é — obrigando abrir a Agenda para descobrir. A descrição já existia
+ * como dado em ROTINA_SEMANAL_FIXA, só não estava sendo exibida aqui.
+ */
+function descreverItemDeAgenda(item: { tipo: string; rotinaFixaReferencia: string | null }): string {
+  if (item.tipo === "rotina_fixa" && item.rotinaFixaReferencia) {
+    const rotina = ROTINA_SEMANAL_FIXA.find((r) => r.referencia === item.rotinaFixaReferencia);
+    if (rotina) return rotina.descricao;
+  }
+  return item.tipo;
+}
 
 export default async function DashboardPage() {
   const depsAgenda = criarDependenciasDaAgenda();
@@ -62,7 +77,7 @@ export default async function DashboardPage() {
             {itensDoDia.map((item) => (
               <li key={item.id}>
                 {item.dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} ·{" "}
-                {item.tipo} · {item.status}
+                {descreverItemDeAgenda(item)} · {item.status}
               </li>
             ))}
           </ul>

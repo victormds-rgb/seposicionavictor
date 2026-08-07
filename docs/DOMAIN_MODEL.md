@@ -103,7 +103,7 @@ Este documento modela o domínio puro do sistema pessoal de Victor Sousa. Nenhum
 
 **Relacionamentos:** Pode originar-se de uma Reuniao; pode gerar Case (via Projeto), BuildLog, PecaDeConteudo, Tarefa, AtivoDeConhecimento.
 
-**Eventos que produz:** `registro_bruto.criado`, `registro_bruto.classificado`.
+**Eventos que produz:** `registro_bruto.criado`, `registro_bruto.classificado`, `registro_bruto.classificado_manualmente` (Sprint 23A — classificação sem SugestaoIA, quando não há IA configurada).
 
 ---
 

@@ -12,6 +12,7 @@ import {
   responderSugestaoAction,
   solicitarNovaSugestaoAction,
   descartarRegistroBrutoAction,
+  classificarManualmenteAction,
 } from "./actions";
 import { SubmitButton } from "../_components/submit-button";
 
@@ -223,6 +224,24 @@ export default async function InboxPage({
                   </form>
                 </div>
               )}
+
+              {!sugestaoPendente &&
+                (registro.status === "capturado" || registro.status === "classificacao_sugerida") && (
+                  <form action={classificarManualmenteAction}>
+                    <input type="hidden" name="registroBrutoId" value={registro.id} />
+                    <label>
+                      Classificar manualmente (sem IA) para
+                      <select name="tipoDestinoEscolhido">
+                        {TIPOS_DESTINO.map((tipo) => (
+                          <option key={tipo} value={tipo}>
+                            {tipo}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <SubmitButton>Confirmar destino</SubmitButton>
+                  </form>
+                )}
 
               {ultimaSugestaoRejeitada && ultimaSugestaoRejeitada.status === "rejeitada" && (
                 <form action={solicitarNovaSugestaoAction}>

@@ -94,6 +94,8 @@ describe("Notificações — Sprint 9 (integração, com volume real de dados)",
       auditoriaDeDriftRepository,
       pecaDeConteudoRepository,
       fundamentoRepository,
+      alertaRepository,
+      clock,
     });
 
     expect(resultado.totalAvaliadas).toBe(20);
@@ -121,6 +123,8 @@ describe("Notificações — Sprint 9 (integração, com volume real de dados)",
       auditoriaDeDriftRepository,
       pecaDeConteudoRepository,
       fundamentoRepository,
+      alertaRepository,
+      clock,
     });
 
     expect(resultado.percentualFalha).toBeGreaterThan(30);
@@ -130,6 +134,16 @@ describe("Notificações — Sprint 9 (integração, com volume real de dados)",
     // Invariante: o Fundamento nunca é alterado por esta operação.
     const fundamento = await fundamentoRepository.buscarAtivo();
     expect(fundamento?.status).toBe("ativo");
+
+    // Sprint 23 — DOGFOODING_REPORT.md, item 2: falha crítica também
+    // vira um Alerta ativo real, não só texto no histórico da auditoria.
+    // `garantirAlertaAtivo` é idempotente (não duplica um alerta já
+    // ativo do mesmo tipo) — não afirmamos que aponta para ESTA
+    // auditoria especificamente, só que o alerta existe e reflete a
+    // recomendação gerada.
+    const alertasAtivos = await alertaRepository.listar({ status: "ativo", tipo: "drift_critico" });
+    expect(alertasAtivos.length).toBeGreaterThanOrEqual(1);
+    expect(alertasAtivos[0]?.condicaoGatilho).toContain("Fundamento");
   });
 
   it("MonitorDeConsistencia: gera alerta de build_log_ausente para produto próprio sem publicação recente", async () => {

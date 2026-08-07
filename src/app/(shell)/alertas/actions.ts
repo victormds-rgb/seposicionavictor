@@ -5,6 +5,7 @@ import { reconhecerAlerta, resolverAlerta } from "@/notificacoes/application/ges
 import { executarAuditoriaDeDrift } from "@/notificacoes/application/executar-auditoria-de-drift";
 import { criarDependenciasDeNotificacoes } from "@/notificacoes/infrastructure/composicao";
 import { logarFalhaEPropagar } from "@infra/logging/logger";
+import { SystemClock } from "@/shared/infrastructure/system-clock";
 
 export async function reconhecerAlertaAction(formData: FormData) {
   const deps = criarDependenciasDeNotificacoes();
@@ -35,7 +36,7 @@ export async function resolverAlertaAction(formData: FormData) {
 export async function executarAuditoriaAction() {
   const deps = criarDependenciasDeNotificacoes();
   try {
-    await executarAuditoriaDeDrift(deps);
+    await executarAuditoriaDeDrift({ ...deps, clock: new SystemClock() });
   } catch (erro) {
     logarFalhaEPropagar("executarAuditoriaAction", erro);
   }

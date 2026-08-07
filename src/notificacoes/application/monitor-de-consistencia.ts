@@ -1,4 +1,5 @@
 import type { AlertaRepository } from "@/notificacoes/domain/notificacoes-repository";
+import type { TipoAlerta } from "@/notificacoes/domain/alerta";
 import type { AuditoriaDeDriftRepository } from "@/notificacoes/domain/notificacoes-repository";
 import type { ProjetoRepository } from "@/projetos/domain/projeto-repository";
 import type { BuildLogRepository } from "@/build_logs/domain/build-log-repository";
@@ -31,8 +32,15 @@ const DIAS_LIMITE_BUILD_LOG_AUSENTE = 21;
 const LIMIAR_DESVIO_PILARES = 30;
 const DIAS_LIMITE_AUDITORIA_DEVIDA = 90;
 
-async function garantirAlertaAtivo(
-  tipo: "build_log_ausente" | "auditoria_devida" | "desvio_pilares",
+/**
+ * Exportada (Sprint 23 — DOGFOODING_REPORT.md, item 2): reaproveitada
+ * por `executarAuditoriaDeDrift` para transformar uma falha crítica de
+ * auditoria num Alerta real, em vez de deixar o resultado só no
+ * histórico da própria auditoria. Mesma função, mesma semântica
+ * idempotente de sempre — só passou a ser visível fora deste módulo.
+ */
+export async function garantirAlertaAtivo(
+  tipo: TipoAlerta,
   condicaoGatilho: string,
   entidadeRelacionadaTipo: string | null,
   entidadeRelacionadaId: string | null,
