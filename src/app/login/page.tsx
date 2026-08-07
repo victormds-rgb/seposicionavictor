@@ -2,6 +2,7 @@ import { signIn } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { FormField } from "@/components/ui/form-field";
 
 /**
  * Página de login — Sprint 24 (Primeira versão visual).
@@ -22,14 +23,12 @@ export default async function LoginPage({
       <Card className="w-full max-w-sm">
         <h1 className="text-lg font-semibold text-zinc-900">SEPosicionaVictor</h1>
         <form action={signIn} className="mt-6 space-y-4">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-zinc-700">E-mail</span>
+          <FormField label="E-mail">
             <Input type="email" name="email" required />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-zinc-700">Senha</span>
+          </FormField>
+          <FormField label="Senha">
             <Input type="password" name="password" required />
-          </label>
+          </FormField>
           <Button type="submit" className="w-full">
             Entrar
           </Button>
