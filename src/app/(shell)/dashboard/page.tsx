@@ -293,6 +293,48 @@ export default async function DashboardPage() {
       "Se hoje fosse seu primeiro dia como Diretor de Marketing desta empresa, por onde você começaria?";
   }
 
+  // Sprint 38 (Memória Executiva) — LIMITAÇÃO DOCUMENTADA: o sistema
+  // não tem conceito de "última visita" (nenhuma tabela nova foi
+  // criada para isso, por restrição explícita da sprint). O que esta
+  // seção mostra não é um diff real contra uma visita anterior — é o
+  // mesmo estado "pendente/ativo agora" já usado nas seções acima,
+  // reaproveitado sem nenhuma query nova. Por isso ficam de fora
+  // exemplos do enunciado que exigiriam comparação histórica real
+  // (ex.: "a distribuição dos pilares mudou") — não dá pra afirmar
+  // isso sem guardar um snapshot anterior, o que a sprint proíbe
+  // criar. Ver relatório da Sprint 38 para a sugestão futura (uma
+  // coluna `ultimoAcessoEm` no usuário, ou um timestamp em sessão,
+  // seria o suficiente — não implementado aqui).
+  const mudancasDetectadas: string[] = [];
+
+  if (alertasAtivos.length > 0) {
+    mudancasDetectadas.push(
+      alertasAtivos.length === 1
+        ? "1 alerta novo desde sua última visita."
+        : `${alertasAtivos.length} alertas novos desde sua última visita.`
+    );
+  }
+
+  if (pendenciasInbox.length > 0) {
+    mudancasDetectadas.push(
+      pendenciasInbox.length === 1
+        ? "1 novo registro chegou à Inbox."
+        : `${pendenciasInbox.length} novos registros chegaram à Inbox.`
+    );
+  }
+
+  if (itensDoDia.length > 0) {
+    mudancasDetectadas.push("Novos itens apareceram na sua Agenda de hoje.");
+  }
+
+  if (projetosProntosParaCase.length > 0) {
+    mudancasDetectadas.push(
+      projetosProntosParaCase.length === 1
+        ? "Um Projeto ficou pronto para virar Case."
+        : `${projetosProntosParaCase.length} Projetos ficaram prontos para virar Case.`
+    );
+  }
+
   return (
     <div>
       <PageHeader title="MeuCMO" description="Seu Diretor de Marketing movido por IA." />
@@ -302,6 +344,20 @@ export default async function DashboardPage() {
           <Card className="p-4 shadow-none">
             <p className="text-sm font-medium text-zinc-900">🤔 {perguntaEstrategica}</p>
           </Card>
+        </Section>
+
+        <Section title="Desde sua última visita">
+          {mudancasDetectadas.length === 0 ? (
+            <EmptyState message="Nada mudou desde sua última visita." />
+          ) : (
+            <Card className="p-4 shadow-none">
+              <ul className="space-y-1 text-sm text-zinc-700">
+                {mudancasDetectadas.map((mudanca) => (
+                  <li key={mudanca}>✓ {mudanca}</li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </Section>
 
         <Section title="Resumo Executivo">
