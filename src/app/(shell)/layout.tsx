@@ -3,7 +3,8 @@ import { SignOutButton } from "./_components/sign-out-button";
 import { QuickCapture } from "./_components/quick-capture";
 
 /**
- * Layout do Shell — Sprint 1, estilo Sprint 25.
+ * Layout do Shell — Sprint 1, estilo Sprint 25, rebranding "MeuCMO"
+ * na Sprint 32.
  *
  * Envolve todos os módulos da Navegação Global (UI_UX.md, seção 4).
  * "/login" fica fora deste grupo de rotas propositalmente (não deve
@@ -23,7 +24,7 @@ export default function ShellLayout({
     <div className="min-h-screen bg-zinc-50 md:flex">
       <aside className="hidden shrink-0 border-r border-zinc-200 bg-white md:flex md:w-60 md:flex-col md:justify-between md:p-4">
         <div>
-          <p className="mb-6 px-3 text-sm font-semibold text-zinc-900">SEPosicionaVictor</p>
+          <p className="mb-6 px-3 text-sm font-semibold text-zinc-900">MeuCMO</p>
           <GlobalNavigation />
         </div>
         <div className="flex flex-col gap-2 px-3">
@@ -34,7 +35,7 @@ export default function ShellLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-3 md:hidden">
-          <p className="text-sm font-semibold text-zinc-900">SEPosicionaVictor</p>
+          <p className="text-sm font-semibold text-zinc-900">MeuCMO</p>
           <div className="flex items-center gap-2">
             <QuickCapture />
             <SignOutButton />

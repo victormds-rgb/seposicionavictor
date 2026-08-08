@@ -4,9 +4,26 @@ import "./globals.css";
 // Layout raiz mínimo — Sprint 0 (Fundação).
 // Navegação global, shell da aplicação e Dashboard pertencem à Sprint 1
 // (IMPLEMENTATION_PLAN.md) e não são antecipados aqui.
+//
+// Sprint 32 — Rebranding para "MeuCMO": só identidade visual/textos.
+// Nenhuma rota, domínio, nome de projeto Vercel ou repositório muda —
+// ver relatório da Sprint 32.
+const NOME_PRODUTO = "MeuCMO";
+const SUBTITULO_PRODUTO = "Seu Diretor de Marketing movido por IA.";
+
 export const metadata: Metadata = {
-  title: "SEPosicionaVictor",
-  description: "Sistema Operacional da Marca — Victor Sousa",
+  title: NOME_PRODUTO,
+  description: SUBTITULO_PRODUTO,
+  manifest: "/manifest.json",
+  openGraph: {
+    title: NOME_PRODUTO,
+    description: SUBTITULO_PRODUTO,
+  },
+  twitter: {
+    card: "summary",
+    title: NOME_PRODUTO,
+    description: SUBTITULO_PRODUTO,
+  },
 };
 
 // Sprint 25 (Shell/Responsividade): sem isto, qualquer navegador —

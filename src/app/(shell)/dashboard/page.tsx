@@ -97,7 +97,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <PageHeader title="Dashboard" />
+      <PageHeader title="MeuCMO" description="Seu Diretor de Marketing movido por IA." />
 
       <div className="space-y-4">
         <Section title="Visão Geral">

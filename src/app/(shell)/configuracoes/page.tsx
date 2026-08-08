@@ -46,6 +46,16 @@ export default async function ConfiguracoesPage() {
       <h1>Configurações</h1>
       <p>Informações do sistema — nenhum campo aqui é editável.</p>
 
+      <section aria-labelledby="produto">
+        <h2 id="produto">Produto</h2>
+        <dl>
+          <dt>Nome</dt>
+          <dd>MeuCMO</dd>
+          <dt>Versão atual</dt>
+          <dd>{packageJson.version}</dd>
+        </dl>
+      </section>
+
       <section aria-labelledby="sistema">
         <h2 id="sistema">Sistema</h2>
         <dl>
