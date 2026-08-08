@@ -271,11 +271,39 @@ export default async function DashboardPage() {
 
   const topRecomendacoesEstrategicas = recomendacoesEstrategicas.slice(0, 3);
 
+  // Sprint 37 (Pergunta Estratégica): mesma ordem de prioridade
+  // (Alertas → Inbox → Agenda → Projetos → Conteúdo), mas só a
+  // primeira condição verdadeira vence — nunca mais de uma pergunta.
+  // Sem condição nenhuma, cai no fallback fixo (não é uma consulta,
+  // é o texto padrão da sprint).
+  let perguntaEstrategica: string;
+  if (alertasAtivos.length > 0) {
+    perguntaEstrategica = "O que pode acontecer se este alerta continuar aberto por mais alguns dias?";
+  } else if (pendenciasInbox.length > 0) {
+    perguntaEstrategica = "O que pode estar escondido na sua Inbox hoje?";
+  } else if (itensDoDia.length > 0) {
+    perguntaEstrategica = "Qual atividade de hoje terá maior impacto no seu negócio?";
+  } else if (projetosProntosParaCase.length > 0) {
+    perguntaEstrategica = "Por que este projeto ainda não virou um Case?";
+  } else if (desviosRelevantes.length > 0) {
+    perguntaEstrategica =
+      "Você está fortalecendo a autoridade da marca ou apenas produzindo mais conteúdo?";
+  } else {
+    perguntaEstrategica =
+      "Se hoje fosse seu primeiro dia como Diretor de Marketing desta empresa, por onde você começaria?";
+  }
+
   return (
     <div>
       <PageHeader title="MeuCMO" description="Seu Diretor de Marketing movido por IA." />
 
       <div className="space-y-4">
+        <Section title="Pergunta Estratégica do Dia">
+          <Card className="p-4 shadow-none">
+            <p className="text-sm font-medium text-zinc-900">🤔 {perguntaEstrategica}</p>
+          </Card>
+        </Section>
+
         <Section title="Resumo Executivo">
           <p className="text-sm text-zinc-500">Seu MeuCMO preparou uma visão rápida da operação.</p>
 
