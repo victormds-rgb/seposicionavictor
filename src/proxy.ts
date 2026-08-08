@@ -69,6 +69,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Sprint 32: manifest.json (public/manifest.json, identidade do
+    // app) precisa ficar de fora pelo mesmo motivo dos ícones abaixo
+    // — sem isto, era redirecionado para /login como qualquer outra
+    // rota (achado real durante a validação em produção da Sprint 32).
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
