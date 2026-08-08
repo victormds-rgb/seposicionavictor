@@ -77,6 +77,12 @@ interface Recomendacao {
   rotuloAcao: string;
 }
 
+// Sprint 35 (Briefing Inteligente): não recalcula nada — só decide
+// que frase mostrar para uma condição que os dados acima já provam
+// verdadeira. Nenhuma frase aparece se a condição correspondente for
+// falsa (nunca "frase falsa"). Copy evita termos técnicos (Sprint 35,
+// seção "Copy": nada de "fora da meta", "pendência", "registro").
+
 export default async function DashboardPage() {
   const depsAgenda = criarDependenciasDaAgenda();
   const depsInbox = criarDependenciasDaInbox();
@@ -132,10 +138,16 @@ export default async function DashboardPage() {
   // nenhum cálculo novo) — só reorganiza em recomendações acionáveis.
   const projetosProntosParaCase = projetos.filter((p) => p.status === "pronto_para_case");
 
+  // Ordem de prioridade fixada pela Sprint 35: Alertas → Inbox →
+  // Agenda → Projetos prontos para Case → Conteúdo. Mesma ordem para
+  // as frases do resumo e para os cartões, evitando o resumo apontar
+  // uma prioridade e os cartões abaixo mostrarem outra.
   const recomendacoes: Recomendacao[] = [];
+  const frasesResumo: string[] = [];
 
   if (alertasAtivos.length > 0) {
     const [primeiro] = alertasAtivos;
+    frasesResumo.push("Há alertas importantes que precisam da sua atenção.");
     recomendacoes.push({
       icone: "🔴",
       titulo: "Prioridade",
@@ -149,16 +161,20 @@ export default async function DashboardPage() {
   }
 
   if (pendenciasInbox.length > 0) {
+    frasesResumo.push(
+      `Existem ${pendenciasInbox.length} item(ns) aguardando sua decisão na Inbox.`
+    );
     recomendacoes.push({
       icone: "📥",
       titulo: "Caixa de Entrada",
-      descricao: `Existem ${pendenciasInbox.length} registro(s) aguardando decisão.`,
+      descricao: `Existem ${pendenciasInbox.length} item(ns) aguardando sua decisão.`,
       href: "/inbox",
       rotuloAcao: "Abrir Inbox",
     });
   }
 
   if (itensDoDia.length > 0) {
+    frasesResumo.push(`Você tem ${itensDoDia.length} atividade(s) na agenda hoje.`);
     recomendacoes.push({
       icone: "📅",
       titulo: "Hoje",
@@ -168,17 +184,8 @@ export default async function DashboardPage() {
     });
   }
 
-  if (desviosRelevantes.length > 0) {
-    recomendacoes.push({
-      icone: "📊",
-      titulo: "Conteúdo",
-      descricao: "Sua distribuição de conteúdo está fora da meta.",
-      href: "/conteudo",
-      rotuloAcao: "Abrir Conteúdo",
-    });
-  }
-
   if (projetosProntosParaCase.length > 0) {
+    frasesResumo.push("Um projeto já pode ser transformado em Case.");
     recomendacoes.push({
       icone: "⭐",
       titulo: "Oportunidade",
@@ -188,32 +195,55 @@ export default async function DashboardPage() {
     });
   }
 
+  if (desviosRelevantes.length > 0) {
+    frasesResumo.push("Sua produção de conteúdo precisa de atenção para se alinhar à meta.");
+    recomendacoes.push({
+      icone: "📊",
+      titulo: "Conteúdo",
+      descricao: "Sua produção de conteúdo precisa de atenção para se alinhar à meta.",
+      href: "/conteudo",
+      rotuloAcao: "Abrir Conteúdo",
+    });
+  }
+
   return (
     <div>
       <PageHeader title="MeuCMO" description="Seu Diretor de Marketing movido por IA." />
 
       <div className="space-y-4">
-        <Section title="Briefing do Dia">
-          <p className="mb-4 text-sm text-zinc-600">
-            Bom dia. Seu MeuCMO analisou sua operação e encontrou alguns pontos que merecem atenção
-            hoje.
-          </p>
+        <Section title="Resumo Executivo">
+          <p className="text-sm text-zinc-500">Seu MeuCMO preparou uma visão rápida da operação.</p>
+
           {recomendacoes.length === 0 ? (
-            <EmptyState message="Tudo sob controle. Nenhuma ação prioritária foi encontrada hoje." />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {recomendacoes.map((r) => (
-                <Card key={r.titulo} className="p-4 shadow-none">
-                  <p className="text-sm font-semibold text-zinc-900">
-                    {r.icone} {r.titulo}
-                  </p>
-                  <p className="mt-1 text-sm text-zinc-600">{r.descricao}</p>
-                  <Link href={r.href} className={CLASSE_BOTAO_CARTAO}>
-                    {r.rotuloAcao}
-                  </Link>
-                </Card>
-              ))}
+            <div className="mt-3">
+              <EmptyState message="Bom dia. Sua operação está saudável. Nenhuma prioridade foi encontrada hoje." />
             </div>
+          ) : (
+            <>
+              <p className="mt-3 text-sm text-zinc-700">
+                Bom dia. Hoje encontrei {recomendacoes.length} ponto(s) importante(s) na sua
+                operação.
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-zinc-700">
+                {frasesResumo.map((frase) => (
+                  <li key={frase}>• {frase}</li>
+                ))}
+              </ul>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {recomendacoes.map((r) => (
+                  <Card key={r.titulo} className="p-4 shadow-none">
+                    <p className="text-sm font-semibold text-zinc-900">
+                      {r.icone} {r.titulo}
+                    </p>
+                    <p className="mt-1 text-sm text-zinc-600">{r.descricao}</p>
+                    <Link href={r.href} className={CLASSE_BOTAO_CARTAO}>
+                      {r.rotuloAcao}
+                    </Link>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </Section>
 
