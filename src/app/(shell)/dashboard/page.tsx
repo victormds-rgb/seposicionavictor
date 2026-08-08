@@ -77,6 +77,14 @@ interface Recomendacao {
   rotuloAcao: string;
 }
 
+interface RecomendacaoEstrategica {
+  icone: string;
+  texto: string;
+  justificativa?: string;
+  href: string;
+  rotuloAcao: string;
+}
+
 // Sprint 35 (Briefing Inteligente): não recalcula nada — só decide
 // que frase mostrar para uma condição que os dados acima já provam
 // verdadeira. Nenhuma frase aparece se a condição correspondente for
@@ -206,6 +214,63 @@ export default async function DashboardPage() {
     });
   }
 
+  // Sprint 36 (Recomendações Estratégicas): mesmas condições já
+  // provadas acima (nenhuma query/cálculo novo) — só aconselha em vez
+  // de informar. Texto deliberadamente diferente do Resumo Executivo
+  // (Sprint 35) para nunca repetir a mesma frase; máximo 3 cartões,
+  // mesma ordem de prioridade Alertas → Inbox → Agenda → Projetos →
+  // Conteúdo.
+  const recomendacoesEstrategicas: RecomendacaoEstrategica[] = [];
+
+  if (alertasAtivos.length > 0) {
+    recomendacoesEstrategicas.push({
+      icone: "🚨",
+      texto: "Eu resolveria os alertas antes de produzir novos conteúdos.",
+      href: "/alertas",
+      rotuloAcao: "Abrir Alertas",
+    });
+  }
+
+  if (pendenciasInbox.length > 0) {
+    recomendacoesEstrategicas.push({
+      icone: "📥",
+      texto: "Eu começaria classificando os registros da Inbox.",
+      justificativa: "Eles podem gerar novos conteúdos, tarefas ou oportunidades.",
+      href: "/inbox",
+      rotuloAcao: "Abrir Inbox",
+    });
+  }
+
+  if (itensDoDia.length > 0) {
+    recomendacoesEstrategicas.push({
+      icone: "📅",
+      texto: "Eu começaria pelas atividades programadas para hoje.",
+      href: "/agenda",
+      rotuloAcao: "Abrir Agenda",
+    });
+  }
+
+  if (projetosProntosParaCase.length > 0) {
+    recomendacoesEstrategicas.push({
+      icone: "⭐",
+      texto: "Eu transformaria este projeto em um Case ainda hoje.",
+      justificativa: "Cases geram autoridade e alimentam sua estratégia de conteúdo.",
+      href: "/projetos",
+      rotuloAcao: "Abrir Projeto",
+    });
+  }
+
+  if (desviosRelevantes.length > 0) {
+    recomendacoesEstrategicas.push({
+      icone: "📊",
+      texto: "Eu equilibraria a produção de conteúdo antes da próxima publicação.",
+      href: "/conteudo",
+      rotuloAcao: "Abrir Conteúdo",
+    });
+  }
+
+  const topRecomendacoesEstrategicas = recomendacoesEstrategicas.slice(0, 3);
+
   return (
     <div>
       <PageHeader title="MeuCMO" description="Seu Diretor de Marketing movido por IA." />
@@ -244,6 +309,26 @@ export default async function DashboardPage() {
                 ))}
               </div>
             </>
+          )}
+        </Section>
+
+        <Section title="Recomendações do MeuCMO">
+          {topRecomendacoesEstrategicas.length === 0 ? (
+            <EmptyState message="Nenhuma recomendação estratégica no momento." />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {topRecomendacoesEstrategicas.map((r) => (
+                <Card key={r.texto} className="p-4 shadow-none">
+                  <p className="text-sm font-medium text-zinc-900">
+                    {r.icone} {r.texto}
+                  </p>
+                  {r.justificativa && <p className="mt-1 text-sm text-zinc-500">{r.justificativa}</p>}
+                  <Link href={r.href} className={CLASSE_BOTAO_CARTAO}>
+                    {r.rotuloAcao}
+                  </Link>
+                </Card>
+              ))}
+            </div>
           )}
         </Section>
 
