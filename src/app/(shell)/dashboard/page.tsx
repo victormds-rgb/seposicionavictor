@@ -20,6 +20,7 @@ import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 /**
  * Dashboard — estrutura definida na Sprint 1 (UI_UX.md, seção 5),
@@ -60,6 +61,21 @@ const ROTULOS_STATUS_ITEM: Record<string, string> = {
   concluido: "Concluído",
   perdido: "Perdido",
 };
+
+// Sprint 34 (Briefing do Dia): link de ação de cada cartão — mesma
+// linguagem visual do variant "secondary" de Button
+// (src/components/ui/button.tsx), só que como <a> (navegação de
+// página, não submissão de formulário — Button não tem `href`).
+const CLASSE_BOTAO_CARTAO =
+  "mt-3 inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2";
+
+interface Recomendacao {
+  icone: string;
+  titulo: string;
+  descricao: string;
+  href: string;
+  rotuloAcao: string;
+}
 
 export default async function DashboardPage() {
   const depsAgenda = criarDependenciasDaAgenda();
@@ -111,11 +127,96 @@ export default async function DashboardPage() {
   const conteudosEmProducao = pecas.filter((p) => p.status !== "publicado");
   const conteudosPublicados = pecas.filter((p) => p.status === "publicado");
 
+  // Sprint 34 — Briefing do Dia: reaproveita exclusivamente os dados
+  // já carregados acima para as demais seções (nenhuma query nova,
+  // nenhum cálculo novo) — só reorganiza em recomendações acionáveis.
+  const projetosProntosParaCase = projetos.filter((p) => p.status === "pronto_para_case");
+
+  const recomendacoes: Recomendacao[] = [];
+
+  if (alertasAtivos.length > 0) {
+    const [primeiro] = alertasAtivos;
+    recomendacoes.push({
+      icone: "🔴",
+      titulo: "Prioridade",
+      descricao:
+        alertasAtivos.length > 1
+          ? `${primeiro!.condicaoGatilho} (+ ${alertasAtivos.length - 1} outro(s) alerta ativo)`
+          : primeiro!.condicaoGatilho,
+      href: "/alertas",
+      rotuloAcao: "Ir para Alertas",
+    });
+  }
+
+  if (pendenciasInbox.length > 0) {
+    recomendacoes.push({
+      icone: "📥",
+      titulo: "Caixa de Entrada",
+      descricao: `Existem ${pendenciasInbox.length} registro(s) aguardando decisão.`,
+      href: "/inbox",
+      rotuloAcao: "Abrir Inbox",
+    });
+  }
+
+  if (itensDoDia.length > 0) {
+    recomendacoes.push({
+      icone: "📅",
+      titulo: "Hoje",
+      descricao: `Você possui ${itensDoDia.length} atividade(s).`,
+      href: "/agenda",
+      rotuloAcao: "Abrir Agenda",
+    });
+  }
+
+  if (desviosRelevantes.length > 0) {
+    recomendacoes.push({
+      icone: "📊",
+      titulo: "Conteúdo",
+      descricao: "Sua distribuição de conteúdo está fora da meta.",
+      href: "/conteudo",
+      rotuloAcao: "Abrir Conteúdo",
+    });
+  }
+
+  if (projetosProntosParaCase.length > 0) {
+    recomendacoes.push({
+      icone: "⭐",
+      titulo: "Oportunidade",
+      descricao: "Existe um projeto pronto para virar Case.",
+      href: "/projetos",
+      rotuloAcao: "Abrir Projetos",
+    });
+  }
+
   return (
     <div>
       <PageHeader title="MeuCMO" description="Seu Diretor de Marketing movido por IA." />
 
       <div className="space-y-4">
+        <Section title="Briefing do Dia">
+          <p className="mb-4 text-sm text-zinc-600">
+            Bom dia. Seu MeuCMO analisou sua operação e encontrou alguns pontos que merecem atenção
+            hoje.
+          </p>
+          {recomendacoes.length === 0 ? (
+            <EmptyState message="Tudo sob controle. Nenhuma ação prioritária foi encontrada hoje." />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {recomendacoes.map((r) => (
+                <Card key={r.titulo} className="p-4 shadow-none">
+                  <p className="text-sm font-semibold text-zinc-900">
+                    {r.icone} {r.titulo}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-600">{r.descricao}</p>
+                  <Link href={r.href} className={CLASSE_BOTAO_CARTAO}>
+                    {r.rotuloAcao}
+                  </Link>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Section>
+
         <Section title="Visão Geral">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <StatCard label="Leads ativos" value={leadsAtivos.length} />
