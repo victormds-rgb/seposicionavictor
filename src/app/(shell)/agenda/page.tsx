@@ -1,6 +1,7 @@
 import { listarItensAgenda } from "@/agenda/application/listar-itens-agenda";
 import { listarReunioes } from "@/reunioes/application/listar-reunioes";
 import { criarDependenciasDaAgenda } from "@/agenda/infrastructure/composicao";
+import { ROTINA_SEMANAL_FIXA } from "@/agenda/domain/item-agenda";
 import {
   agendarReuniaoAction,
   marcarComoRealizadaAction,
@@ -9,6 +10,25 @@ import {
   instanciarRotinaSemanalAction,
 } from "./actions";
 import { SubmitButton } from "../_components/submit-button";
+
+// Sprint 33.5 (Refinamento): mesma lógica de descrição já usada no
+// Dashboard (Sprint 23) — sem isto, a própria tela de Agenda (o lugar
+// dedicado a ver a agenda) mostrava só "rotina_fixa
+// (segunda_desculpa_semana)" cru, enquanto o Dashboard já mostrava a
+// descrição legível para o mesmo dado.
+function descreverItemDeAgenda(item: { tipo: string; rotinaFixaReferencia: string | null }): string {
+  if (item.tipo === "rotina_fixa" && item.rotinaFixaReferencia) {
+    const rotina = ROTINA_SEMANAL_FIXA.find((r) => r.referencia === item.rotinaFixaReferencia);
+    if (rotina) return rotina.descricao;
+  }
+  return item.tipo === "tarefa_com_prazo" ? "Tarefa com prazo" : "Reunião";
+}
+
+const ROTULOS_STATUS_ITEM: Record<string, string> = {
+  agendado: "Agendado",
+  concluido: "Concluído",
+  perdido: "Perdido",
+};
 
 function inicioDaSemanaAtual(): Date {
   const agora = new Date();
@@ -55,7 +75,7 @@ export default async function AgendaPage() {
         <h2 id="rotina-semanal">Rotina semanal fixa</h2>
         <form action={instanciarRotinaSemanalAction}>
           <input type="hidden" name="inicioDaSemana" value={inicio.toISOString()} />
-          <SubmitButton>Instanciar rotina desta semana</SubmitButton>
+          <SubmitButton>Criar rotina desta semana</SubmitButton>
         </form>
       </section>
 
@@ -89,9 +109,13 @@ export default async function AgendaPage() {
             return (
               <li key={item.id}>
                 <p>
-                  <strong>{item.dataHora.toLocaleString("pt-BR")}</strong> · {item.tipo}
-                  {item.rotinaFixaReferencia && ` (${item.rotinaFixaReferencia})`} ·{" "}
-                  <em>{item.status}</em>
+                  <strong>
+                    {item.tipo === "rotina_fixa"
+                      ? item.dataHora.toLocaleDateString("pt-BR")
+                      : item.dataHora.toLocaleString("pt-BR")}
+                  </strong>{" "}
+                  · {descreverItemDeAgenda(item)} ·{" "}
+                  <em>{ROTULOS_STATUS_ITEM[item.status] ?? item.status}</em>
                 </p>
 
                 {item.tipo === "rotina_fixa" && item.status === "agendado" && (

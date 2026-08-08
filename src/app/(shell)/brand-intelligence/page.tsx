@@ -13,6 +13,24 @@ import { SubmitButton } from "../_components/submit-button";
  */
 export const dynamic = "force-dynamic";
 
+// Sprint 33.5 (Refinamento): rótulos legíveis — antes apareciam crus
+// ("sistema_operacional_marca", "nao_indexado") e "chunks" (termo de
+// implementação) em vez de "trechos", contrariando a própria intenção
+// desta tela (ver docstring acima: "sem exigir que Victor entenda o
+// mecanismo técnico por trás").
+const ROTULOS_TIPO_DOCUMENTO: Record<string, string> = {
+  sistema_operacional_marca: "Sistema Operacional de Marca",
+  manual_marca: "Manual de Marca",
+  outro: "Outro",
+};
+
+const ROTULOS_STATUS_INDEXACAO: Record<string, string> = {
+  nao_indexado: "Não indexado",
+  indexado: "Indexado",
+  desatualizado: "Desatualizado",
+  erro: "Erro",
+};
+
 export default async function BrandIntelligencePage() {
   const deps = criarDependenciasDeBrandIntelligence();
   const documentos = await listarDocumentosOficiais({}, { documentoOficialRepository: deps.documentoOficialRepository });
@@ -37,7 +55,7 @@ export default async function BrandIntelligencePage() {
             <select name="tipoDocumento" defaultValue="sistema_operacional_marca">
               {TIPOS_DOCUMENTO.map((t) => (
                 <option key={t} value={t}>
-                  {t}
+                  {ROTULOS_TIPO_DOCUMENTO[t] ?? t}
                 </option>
               ))}
             </select>
@@ -59,15 +77,16 @@ export default async function BrandIntelligencePage() {
               return (
                 <li key={doc.id}>
                   <p>
-                    <strong>{doc.titulo}</strong> · {doc.tipoDocumento} ·{" "}
-                    <em>{doc.statusIndexacao}</em>
+                    <strong>{doc.titulo}</strong> ·{" "}
+                    {ROTULOS_TIPO_DOCUMENTO[doc.tipoDocumento] ?? doc.tipoDocumento} ·{" "}
+                    <em>{ROTULOS_STATUS_INDEXACAO[doc.statusIndexacao] ?? doc.statusIndexacao}</em>
                   </p>
                   <p>
                     Última sincronização:{" "}
                     {doc.ultimaSincronizacao
                       ? doc.ultimaSincronizacao.toLocaleString("pt-BR")
                       : "nunca sincronizado"}{" "}
-                    · {chunks.length} chunks indexados
+                    · {chunks.length} trecho(s) indexado(s)
                   </p>
                   <form action={sincronizarAgoraAction}>
                     <input type="hidden" name="documentoId" value={doc.id} />

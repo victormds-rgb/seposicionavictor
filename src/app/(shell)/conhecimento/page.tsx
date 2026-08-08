@@ -18,6 +18,13 @@ import { SubmitButton } from "../_components/submit-button";
  */
 export const dynamic = "force-dynamic";
 
+// Sprint 33.5 (Refinamento): rótulo legível — antes "conteudo_sem_case"
+// aparecia cru.
+const ROTULOS_APLICACAO: Record<string, string> = {
+  cliente: "Clientes",
+  conteudo_sem_case: "Conteúdo sem case",
+};
+
 export default async function ConhecimentoPage() {
   const deps = criarDependenciasDeConhecimento();
 
@@ -72,7 +79,7 @@ export default async function ConhecimentoPage() {
         <ul>
           {regras.map((r) => (
             <li key={r.id}>
-              <strong>{r.nome}</strong> (aplica-se a: {r.aplicaA})
+              <strong>{r.nome}</strong> (aplica-se a: {ROTULOS_APLICACAO[r.aplicaA] ?? r.aplicaA})
             </li>
           ))}
         </ul>
@@ -83,7 +90,7 @@ export default async function ConhecimentoPage() {
         <ul>
           {perguntas.map((p) => (
             <li key={p.id}>
-              {p.conteudoTextual} <em>(usada {p.frequenciaUso}x)</em>
+              {p.conteudoTextual} <em>(usada {p.frequenciaUso} vezes)</em>
             </li>
           ))}
         </ul>
@@ -94,7 +101,7 @@ export default async function ConhecimentoPage() {
         <ul>
           {analogias.map((a) => (
             <li key={a.id}>
-              {a.conteudoTextual} <em>(usada {a.frequenciaUso}x)</em>
+              {a.conteudoTextual} <em>(usada {a.frequenciaUso} vezes)</em>
             </li>
           ))}
         </ul>

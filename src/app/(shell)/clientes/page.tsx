@@ -31,6 +31,19 @@ function variantDaClassificacao(classificacao: string): "neutral" | "warning" | 
   return "neutral";
 }
 
+// Sprint 33.5 (Refinamento): rótulos legíveis para os identificadores
+// internos (antes apareciam crus: "em_avaliacao", "prioridade_alta",
+// "exigir_contrato_reforcado", "cliente_de_caixa").
+function rotuloDoStatus(status: string): string {
+  return status === "em_avaliacao" ? "Em avaliação" : status;
+}
+
+const ROTULOS_CLASSIFICACAO: Record<string, string> = {
+  prioridade_alta: "Prioridade Alta",
+  exigir_contrato_reforcado: "Contrato Reforçado",
+  cliente_de_caixa: "Cliente de Caixa",
+};
+
 export default async function ClientesPage() {
   const deps = criarDependenciasDeClientes();
   const clientes = await listarClientes({}, { clienteRepository: deps.clienteRepository });
@@ -44,32 +57,42 @@ export default async function ClientesPage() {
           <EmptyState message="Nenhum cliente ainda — converta um Lead no Pipeline Comercial." />
         )}
         <ul className="space-y-4">
-          {clientes.map((cliente) => (
-            <li key={cliente.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
-              <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
-                <strong className="font-medium">{cliente.nome}</strong>
-                {cliente.setor && <span className="text-zinc-500">{cliente.setor}</span>}
-                <Badge variant={variantDoStatus(cliente.status)}>{cliente.status}</Badge>
-                {cliente.classificacaoResultante && (
-                  <Badge variant={variantDaClassificacao(cliente.classificacaoResultante)}>
-                    {cliente.classificacaoResultante}
-                  </Badge>
-                )}
-              </p>
-              <p className="mt-1 text-sm text-zinc-500">
-                Classificação: {cliente.classificacaoResultante ?? "não avaliado"}
-              </p>
-              {/* UX_REPORT.md — Sprint 22: sem isto, não havia forma de
-                  obter o ID exigido pelo campo "Cliente (uuid)" em
-                  Projetos a não ser consultando o banco diretamente. */}
-              <p className="mt-1 text-sm text-zinc-500">
-                ID (para criar Projeto): <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs">{cliente.id}</code>
-              </p>
-              {cliente.origemLeadId && (
-                <p className="mt-1 text-sm text-zinc-500">Origem: Lead {cliente.origemLeadId}</p>
-              )}
-            </li>
-          ))}
+          {await Promise.all(
+            clientes.map(async (cliente) => {
+              // Sprint 33.5 (Refinamento): mostra o nome do Lead de
+              // origem em vez do uuid cru — mesmo padrão já usado em
+              // Projetos (Sprint 23B) para o nome do Cliente.
+              const leadDeOrigem = cliente.origemLeadId
+                ? await deps.leadRepository.buscarPorId(cliente.origemLeadId)
+                : null;
+
+              return (
+                <li key={cliente.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
+                  <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
+                    <strong className="font-medium">{cliente.nome}</strong>
+                    {cliente.setor && <span className="text-zinc-500">{cliente.setor}</span>}
+                    <Badge variant={variantDoStatus(cliente.status)}>{rotuloDoStatus(cliente.status)}</Badge>
+                    {cliente.classificacaoResultante && (
+                      <Badge variant={variantDaClassificacao(cliente.classificacaoResultante)}>
+                        {ROTULOS_CLASSIFICACAO[cliente.classificacaoResultante] ??
+                          cliente.classificacaoResultante}
+                      </Badge>
+                    )}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    Classificação:{" "}
+                    {cliente.classificacaoResultante
+                      ? (ROTULOS_CLASSIFICACAO[cliente.classificacaoResultante] ??
+                        cliente.classificacaoResultante)
+                      : "não avaliado"}
+                  </p>
+                  {leadDeOrigem && (
+                    <p className="mt-1 text-sm text-zinc-500">Origem: Lead &quot;{leadDeOrigem.nome}&quot;</p>
+                  )}
+                </li>
+              );
+            })
+          )}
         </ul>
       </Section>
     </div>

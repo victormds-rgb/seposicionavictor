@@ -42,8 +42,24 @@ function descreverItemDeAgenda(item: { tipo: string; rotinaFixaReferencia: strin
     const rotina = ROTINA_SEMANAL_FIXA.find((r) => r.referencia === item.rotinaFixaReferencia);
     if (rotina) return rotina.descricao;
   }
-  return item.tipo;
+  return item.tipo === "tarefa_com_prazo" ? "Tarefa com prazo" : "Reunião";
 }
+
+// Sprint 33.5 (Refinamento): rótulo legível para o tipo do Alerta —
+// antes aparecia cru ("drift_critico", "desvio_pilares"). Mesmo
+// mapeamento usado na tela de Alertas.
+const ROTULOS_TIPO_ALERTA: Record<string, string> = {
+  build_log_ausente: "Build Log ausente",
+  auditoria_devida: "Auditoria devida",
+  desvio_pilares: "Desvio de pilares",
+  drift_critico: "Drift crítico",
+};
+
+const ROTULOS_STATUS_ITEM: Record<string, string> = {
+  agendado: "Agendado",
+  concluido: "Concluído",
+  perdido: "Perdido",
+};
 
 export default async function DashboardPage() {
   const depsAgenda = criarDependenciasDaAgenda();
@@ -119,7 +135,7 @@ export default async function DashboardPage() {
               {itensDoDia.map((item) => (
                 <li key={item.id} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
                   {item.dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} ·{" "}
-                  {descreverItemDeAgenda(item)} · {item.status}
+                  {descreverItemDeAgenda(item)} · {ROTULOS_STATUS_ITEM[item.status] ?? item.status}
                 </li>
               ))}
             </ul>
@@ -140,7 +156,8 @@ export default async function DashboardPage() {
             <ul className="space-y-2 text-sm text-zinc-700">
               {alertasAtivos.map((a) => (
                 <li key={a.id} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
-                  <Badge variant="danger">{a.tipo}</Badge> <span className="ml-1">{a.condicaoGatilho}</span>
+                  <Badge variant="danger">{ROTULOS_TIPO_ALERTA[a.tipo] ?? a.tipo}</Badge>{" "}
+                  <span className="ml-1">{a.condicaoGatilho}</span>
                 </li>
               ))}
             </ul>

@@ -1,6 +1,7 @@
 import { listarProjetos } from "@/projetos/application/listar-e-encerrar-projeto";
 import { listarCasesDoProjeto } from "@/cases/application/publicar-case";
 import { listarBuildLogsDoProjeto } from "@/build_logs/application/build-log-use-cases";
+import { listarClientes } from "@/clientes/application/listar-clientes";
 import { criarDependenciasDeProjetos } from "@/projetos/infrastructure/composicao";
 import { camposDeCaseCompletos } from "@/projetos/domain/projeto";
 import {
@@ -43,6 +44,18 @@ function variantDoStatusProjeto(status: string): "neutral" | "warning" | "succes
   return "neutral";
 }
 
+// Sprint 33.5 (Refinamento): rótulos legíveis — antes apareciam crus
+// ("cliente_externo", "pronto_para_case", "em_andamento").
+const ROTULOS_TIPO_PROJETO: Record<string, string> = {
+  cliente_externo: "Cliente Externo",
+  produto_proprio: "Produto Próprio",
+};
+
+const ROTULOS_STATUS_PROJETO: Record<string, string> = {
+  em_andamento: "Em andamento",
+  pronto_para_case: "Pronto para Case",
+};
+
 function variantDoStatusCase(status: string): "neutral" | "warning" | "success" {
   if (status === "publicado") return "success";
   if (status === "completo") return "warning";
@@ -56,6 +69,11 @@ function variantDoStatusBuildLog(status: string): "neutral" | "success" {
 export default async function ProjetosPage() {
   const deps = criarDependenciasDeProjetos();
   const projetos = await listarProjetos({}, { projetoRepository: deps.projetoRepository });
+  // Sprint 33.5 (Refinamento): lista de Clientes para o select abaixo —
+  // antes o campo pedia o uuid colado manualmente (fonte: a linha "ID
+  // (para criar Projeto)" na tela de Clientes). Elimina o copiar/colar
+  // e o risco de colar um id errado.
+  const clientes = await listarClientes({}, { clienteRepository: deps.clienteRepository });
 
   return (
     <div>
@@ -71,9 +89,14 @@ export default async function ProjetosPage() {
               <option value="cliente_externo">Cliente externo</option>
               <option value="produto_proprio">Produto próprio</option>
             </SelectField>
-            <FormField label="Cliente (uuid, obrigatório se cliente externo)">
-              <Input type="text" name="clienteId" />
-            </FormField>
+            <SelectField label="Cliente (obrigatório se cliente externo)" name="clienteId" defaultValue="">
+              <option value="">—</option>
+              {clientes.map((cliente) => (
+                <option key={cliente.id} value={cliente.id}>
+                  {cliente.nome}
+                </option>
+              ))}
+            </SelectField>
             <TextareaField label="Desculpa inicial (obrigatório se cliente externo)" name="desculpaInicial" />
             <FormField label="Custo mensal (obrigatório se cliente externo)">
               <Input type="number" name="custoMensal" step="0.01" />
@@ -105,8 +128,10 @@ export default async function ProjetosPage() {
                   <li key={projeto.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
                     <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
                       <strong className="font-medium">{projeto.nome}</strong>
-                      <span className="text-zinc-500">{projeto.tipo}</span>
-                      <Badge variant={variantDoStatusProjeto(projeto.status)}>{projeto.status}</Badge>
+                      <span className="text-zinc-500">{ROTULOS_TIPO_PROJETO[projeto.tipo] ?? projeto.tipo}</span>
+                      <Badge variant={variantDoStatusProjeto(projeto.status)}>
+                        {ROTULOS_STATUS_PROJETO[projeto.status] ?? projeto.status}
+                      </Badge>
                       {cliente && <span className="text-zinc-500">Cliente: {cliente.nome}</span>}
                     </p>
                     <p className="mt-1 text-sm text-zinc-500">

@@ -44,6 +44,13 @@ function variantDaTemperatura(temperatura: string): "neutral" | "warning" | "dan
   return "neutral";
 }
 
+// Sprint 33.5 (Refinamento): só "convertido_cliente" precisa de rótulo —
+// os demais status já são uma única palavra legível ("novo",
+// "qualificando" etc.).
+function rotuloDoStatus(status: string): string {
+  return status === "convertido_cliente" ? "Convertido em Cliente" : status;
+}
+
 export default async function PipelinePage() {
   const deps = criarDependenciasDoPipelineComercial();
   const leads = await listarLeads({}, { leadRepository: deps.leadRepository });
@@ -85,7 +92,9 @@ export default async function PipelinePage() {
                 <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
                   <strong className="font-medium">{lead.nome}</strong>
                   <span className="text-zinc-500">{lead.origemLead ?? "origem não informada"}</span>
-                  <Badge variant={variantDoStatus(lead.statusComercial)}>{lead.statusComercial}</Badge>
+                  <Badge variant={variantDoStatus(lead.statusComercial)}>
+                    {rotuloDoStatus(lead.statusComercial)}
+                  </Badge>
                   {lead.temperatura && (
                     <Badge variant={variantDaTemperatura(lead.temperatura)}>{lead.temperatura}</Badge>
                   )}

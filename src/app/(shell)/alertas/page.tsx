@@ -9,6 +9,16 @@ import { SubmitButton } from "../_components/submit-button";
  */
 export const dynamic = "force-dynamic";
 
+// Sprint 33.5 (Refinamento): rótulo legível para o tipo do Alerta —
+// antes aparecia cru ("drift_critico", "desvio_pilares"). Mesmo
+// mapeamento usado na seção "Alertas ativos" do Dashboard.
+const ROTULOS_TIPO_ALERTA: Record<string, string> = {
+  build_log_ausente: "Build Log ausente",
+  auditoria_devida: "Auditoria devida",
+  desvio_pilares: "Desvio de pilares",
+  drift_critico: "Drift crítico",
+};
+
 export default async function AlertasPage() {
   const deps = criarDependenciasDeNotificacoes();
   const alertas = await listarAlertas({}, { alertaRepository: deps.alertaRepository });
@@ -25,7 +35,7 @@ export default async function AlertasPage() {
           {alertas.map((a) => (
             <li key={a.id}>
               <p>
-                <strong>{a.tipo}</strong> · <em>{a.status}</em>
+                <strong>{ROTULOS_TIPO_ALERTA[a.tipo] ?? a.tipo}</strong> · <em>{a.status}</em>
               </p>
               <p>{a.condicaoGatilho}</p>
               {a.status === "ativo" && (

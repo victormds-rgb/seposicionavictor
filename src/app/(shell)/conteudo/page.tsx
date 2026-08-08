@@ -31,6 +31,18 @@ function variantDoStatusPeca(status: string): "neutral" | "warning" | "success" 
   return "neutral";
 }
 
+// Sprint 33.5 (Refinamento): rótulos legíveis — antes apareciam crus
+// ("autonomo" sem acento, "em_revisao" sem acento e com underline).
+const ROTULOS_ORIGEM_PECA: Record<string, string> = {
+  autonomo: "Autônomo",
+  build_log: "Build Log",
+  case: "Case",
+};
+
+const ROTULOS_STATUS_PECA: Record<string, string> = {
+  em_revisao: "Em revisão",
+};
+
 export default async function ConteudoPage({
   searchParams,
 }: {
@@ -150,8 +162,10 @@ export default async function ConteudoPage({
               <li key={peca.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
                 <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
                   <strong className="font-medium">{peca.canal}</strong>
-                  <span className="text-zinc-500">{peca.origemTipo}</span>
-                  <Badge variant={variantDoStatusPeca(peca.status)}>{peca.status}</Badge>
+                  <span className="text-zinc-500">{ROTULOS_ORIGEM_PECA[peca.origemTipo] ?? peca.origemTipo}</span>
+                  <Badge variant={variantDoStatusPeca(peca.status)}>
+                    {ROTULOS_STATUS_PECA[peca.status] ?? peca.status}
+                  </Badge>
                   {peca.pecaOrigemId && (
                     <span className="text-zinc-500">derivada de {peca.pecaOrigemId}</span>
                   )}

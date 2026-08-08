@@ -24,6 +24,27 @@ import { SubmitButton } from "../_components/submit-button";
  * Busca e filtros via query string (UI_UX.md, seção 6;
  * INTERACTION_MODEL.md, seção 5).
  */
+
+// Mapeamento puro de apresentação (Sprint 33.5 — Refinamento): os
+// valores de status/tipoDestino são identificadores internos
+// (snake_case) — antes apareciam crus na tela ("classificacao_sugerida",
+// "build_log"). Não muda nenhum valor armazenado nem enviado ao
+// Server Action, só o texto exibido.
+const ROTULOS_STATUS_REGISTRO: Record<StatusRegistroBruto, string> = {
+  capturado: "Capturado",
+  em_processamento: "Em processamento",
+  classificacao_sugerida: "Sugestão da IA",
+  classificado: "Classificado",
+  descartado: "Descartado",
+};
+
+const ROTULOS_TIPO_DESTINO: Record<(typeof TIPOS_DESTINO)[number], string> = {
+  projeto: "Projeto",
+  build_log: "Build Log",
+  peca_conteudo: "Peça de Conteúdo",
+  tarefa: "Tarefa",
+  ativo_conhecimento: "Ativo de Conhecimento",
+};
 export default async function InboxPage({
   searchParams,
 }: {
@@ -145,7 +166,7 @@ export default async function InboxPage({
               <option value="">Todos</option>
               <option value="capturado">Capturado</option>
               <option value="em_processamento">Em processamento</option>
-              <option value="classificacao_sugerida">Classificação sugerida</option>
+              <option value="classificacao_sugerida">Sugestão da IA</option>
               <option value="classificado">Classificado</option>
               <option value="descartado">Descartado</option>
             </select>
@@ -166,7 +187,7 @@ export default async function InboxPage({
             <li key={registro.id}>
               <p>
                 <strong>{registro.tipoEntrada}</strong> · {registro.origem} ·{" "}
-                <em>{registro.status}</em>
+                <em>{ROTULOS_STATUS_REGISTRO[registro.status]}</em>
               </p>
               {registro.conteudoTexto && <p>{registro.conteudoTexto}</p>}
 
@@ -175,8 +196,14 @@ export default async function InboxPage({
                   <p>
                     IA sugere:{" "}
                     <strong>
-                      {(sugestaoPendente.conteudoSugerido as { tipoDestinoSugerido?: string })
-                        .tipoDestinoSugerido}
+                      {(() => {
+                        const tipo = (
+                          sugestaoPendente.conteudoSugerido as { tipoDestinoSugerido?: string }
+                        ).tipoDestinoSugerido;
+                        return tipo && tipo in ROTULOS_TIPO_DESTINO
+                          ? ROTULOS_TIPO_DESTINO[tipo as keyof typeof ROTULOS_TIPO_DESTINO]
+                          : tipo;
+                      })()}
                     </strong>{" "}
                     — {(sugestaoPendente.conteudoSugerido as { justificativa?: string }).justificativa}
                     {sugestaoPendente.confianca !== null &&
@@ -209,7 +236,7 @@ export default async function InboxPage({
                       <select name="tipoDestinoEscolhido">
                         {TIPOS_DESTINO.map((tipo) => (
                           <option key={tipo} value={tipo}>
-                            {tipo}
+                            {ROTULOS_TIPO_DESTINO[tipo]}
                           </option>
                         ))}
                       </select>
@@ -234,7 +261,7 @@ export default async function InboxPage({
                       <select name="tipoDestinoEscolhido">
                         {TIPOS_DESTINO.map((tipo) => (
                           <option key={tipo} value={tipo}>
-                            {tipo}
+                            {ROTULOS_TIPO_DESTINO[tipo]}
                           </option>
                         ))}
                       </select>
