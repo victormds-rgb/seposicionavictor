@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/verificar-leads-parados",
-      "schedule": "0 */6 * * *"
+      "schedule": "20 6 * * *"
     }
   ]
 }
