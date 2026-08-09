@@ -23,6 +23,13 @@ function leadParaDominio(row: LeadRow): Lead {
     ticketEstimado: row.ticketEstimado ? Number(row.ticketEstimado) : null,
     statusComercial: row.statusComercial as StatusComercial,
     metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+    canalOrigem: row.canalOrigem as Lead["canalOrigem"],
+    campanha: row.campanha,
+    interesse: row.interesse,
+    ultimoContatoEm: row.ultimoContatoEm,
+    proximoContatoEm: row.proximoContatoEm,
+    motivoPerda: row.motivoPerda,
+    criadoEm: row.createdAt,
   };
 }
 
@@ -51,7 +58,7 @@ function agendamentoParaDominio(row: AgendamentoRow): AgendamentoComercial {
 }
 
 export class DrizzleLeadRepository implements LeadRepository {
-  async criar(input: Omit<Lead, "id">): Promise<Lead> {
+  async criar(input: Omit<Lead, "id" | "criadoEm">): Promise<Lead> {
     const [row] = await db
       .insert(lead)
       .values({
@@ -62,6 +69,12 @@ export class DrizzleLeadRepository implements LeadRepository {
         ticketEstimado: input.ticketEstimado?.toString(),
         statusComercial: input.statusComercial,
         metadata: input.metadata,
+        canalOrigem: input.canalOrigem,
+        campanha: input.campanha,
+        interesse: input.interesse,
+        ultimoContatoEm: input.ultimoContatoEm,
+        proximoContatoEm: input.proximoContatoEm,
+        motivoPerda: input.motivoPerda,
       })
       .returning();
 
@@ -76,6 +89,21 @@ export class DrizzleLeadRepository implements LeadRepository {
 
   async atualizarStatusComercial(id: string, status: StatusComercial): Promise<void> {
     await db.update(lead).set({ statusComercial: status, updatedAt: new Date() }).where(eq(lead.id, id));
+  }
+
+  async registrarContato(id: string, contatoEm: Date): Promise<void> {
+    await db.update(lead).set({ ultimoContatoEm: contatoEm, updatedAt: new Date() }).where(eq(lead.id, id));
+  }
+
+  async definirProximoContato(id: string, proximoContatoEm: Date): Promise<void> {
+    await db.update(lead).set({ proximoContatoEm, updatedAt: new Date() }).where(eq(lead.id, id));
+  }
+
+  async marcarComoPerdido(id: string, motivoPerda: string): Promise<void> {
+    await db
+      .update(lead)
+      .set({ statusComercial: "perdido", motivoPerda, updatedAt: new Date() })
+      .where(eq(lead.id, id));
   }
 
   async listar(filtros: FiltrosLead): Promise<Lead[]> {

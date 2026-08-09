@@ -5,6 +5,9 @@ import { criarLead } from "@/pipeline_comercial/application/criar-lead";
 import { qualificarLead } from "@/pipeline_comercial/application/qualificar-lead";
 import { agendarComercial } from "@/pipeline_comercial/application/agendar-comercial";
 import { marcarLeadComoReunido } from "@/pipeline_comercial/application/marcar-lead-como-reunido";
+import { marcarLeadComoPerdido } from "@/pipeline_comercial/application/marcar-lead-como-perdido";
+import { registrarContatoComLead } from "@/pipeline_comercial/application/registrar-contato-com-lead";
+import { definirProximoContato } from "@/pipeline_comercial/application/definir-proximo-contato";
 import { criarDependenciasDoPipelineComercial } from "@/pipeline_comercial/infrastructure/composicao";
 import { logarFalhaEPropagar } from "@infra/logging/logger";
 
@@ -22,14 +25,18 @@ export async function criarLeadAction(formData: FormData) {
           : undefined,
         temperatura: formData.get("temperatura") ? String(formData.get("temperatura")) : undefined,
         ticketEstimado: ticketEstimado ? Number(ticketEstimado) : undefined,
+        canalOrigem: formData.get("canalOrigem") ? String(formData.get("canalOrigem")) : undefined,
+        campanha: formData.get("campanha") ? String(formData.get("campanha")) : undefined,
+        interesse: formData.get("interesse") ? String(formData.get("interesse")) : undefined,
       },
-      { leadRepository: deps.leadRepository }
+      { leadRepository: deps.leadRepository, eventPublisher: deps.eventPublisher }
     );
   } catch (erro) {
     logarFalhaEPropagar("criarLeadAction", erro);
   }
 
   revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
 }
 
 export async function qualificarLeadAction(formData: FormData) {
@@ -45,13 +52,68 @@ export async function qualificarLeadAction(formData: FormData) {
         objecoes: formData.get("objecoes") ? String(formData.get("objecoes")) : undefined,
         proximoPasso: formData.get("proximoPasso") ? String(formData.get("proximoPasso")) : undefined,
       },
-      { leadRepository: deps.leadRepository }
+      { leadRepository: deps.leadRepository, clock: deps.clock, eventPublisher: deps.eventPublisher }
     );
   } catch (erro) {
     logarFalhaEPropagar("qualificarLeadAction", erro);
   }
 
   revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
+}
+
+export async function marcarLeadComoPerdidoAction(formData: FormData) {
+  const deps = criarDependenciasDoPipelineComercial();
+
+  try {
+    await marcarLeadComoPerdido(
+      {
+        leadId: String(formData.get("leadId")),
+        motivoPerda: String(formData.get("motivoPerda")),
+      },
+      { leadRepository: deps.leadRepository, eventPublisher: deps.eventPublisher }
+    );
+  } catch (erro) {
+    logarFalhaEPropagar("marcarLeadComoPerdidoAction", erro);
+  }
+
+  revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
+}
+
+export async function registrarContatoComLeadAction(formData: FormData) {
+  const deps = criarDependenciasDoPipelineComercial();
+
+  try {
+    await registrarContatoComLead(
+      { leadId: String(formData.get("leadId")) },
+      { leadRepository: deps.leadRepository, clock: deps.clock, eventPublisher: deps.eventPublisher }
+    );
+  } catch (erro) {
+    logarFalhaEPropagar("registrarContatoComLeadAction", erro);
+  }
+
+  revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
+}
+
+export async function definirProximoContatoAction(formData: FormData) {
+  const deps = criarDependenciasDoPipelineComercial();
+
+  try {
+    await definirProximoContato(
+      {
+        leadId: String(formData.get("leadId")),
+        proximoContatoEm: String(formData.get("proximoContatoEm")),
+      },
+      { leadRepository: deps.leadRepository, eventPublisher: deps.eventPublisher }
+    );
+  } catch (erro) {
+    logarFalhaEPropagar("definirProximoContatoAction", erro);
+  }
+
+  revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
 }
 
 export async function agendarComercialAction(formData: FormData) {
@@ -79,10 +141,13 @@ export async function marcarLeadComoReunidoAction(formData: FormData) {
   try {
     await marcarLeadComoReunido(String(formData.get("leadId")), {
       leadRepository: deps.leadRepository,
+      clock: deps.clock,
+      eventPublisher: deps.eventPublisher,
     });
   } catch (erro) {
     logarFalhaEPropagar("marcarLeadComoReunidoAction", erro);
   }
 
   revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
 }

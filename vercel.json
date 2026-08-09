@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/atualizar-itens-vencidos",
       "schedule": "10 6 * * *"
+    },
+    {
+      "path": "/api/cron/verificar-leads-parados",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

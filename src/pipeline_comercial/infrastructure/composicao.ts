@@ -2,6 +2,7 @@ import { DrizzleLeadRepository } from "@/pipeline_comercial/infrastructure/lead-
 import { DrizzleReuniaoRepository } from "@/reunioes/infrastructure/reuniao-repository";
 import { DrizzleItemDeAgendaRepository } from "@/agenda/infrastructure/item-agenda-repository";
 import { criarEventDispatcher } from "@/event_log/infrastructure/composicao";
+import { SystemClock } from "@/shared/infrastructure/system-clock";
 
 export function criarDependenciasDoPipelineComercial() {
   return {
@@ -9,5 +10,6 @@ export function criarDependenciasDoPipelineComercial() {
     reuniaoRepository: new DrizzleReuniaoRepository(),
     itemDeAgendaRepository: new DrizzleItemDeAgendaRepository(),
     eventPublisher: criarEventDispatcher(),
+    clock: new SystemClock(),
   };
 }

@@ -78,6 +78,13 @@
       "when": 1785767446866,
       "tag": "0010_lush_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786243869745,
+      "tag": "0011_stiff_blacklash",
+      "breakpoints": true
     }
   ]
 }

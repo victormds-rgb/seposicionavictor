@@ -1,5 +1,6 @@
 import { jobMonitorDeConsistencia } from "./monitor-de-consistencia-job";
 import { jobAtualizarItensVencidos } from "./atualizar-itens-vencidos-job";
+import { jobVerificarLeadsParados } from "./verificar-leads-parados-job";
 
 /**
  * Registro central dos Jobs do Scheduler in-process (ARCHITECTURE.md,
@@ -17,6 +18,7 @@ import { jobAtualizarItensVencidos } from "./atualizar-itens-vencidos-job";
 export const jobs = {
   "monitor-de-consistencia": jobMonitorDeConsistencia,
   "atualizar-itens-vencidos": jobAtualizarItensVencidos,
+  "verificar-leads-parados": jobVerificarLeadsParados,
 } as const;
 
 export type NomeDoJob = keyof typeof jobs;

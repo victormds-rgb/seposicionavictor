@@ -8,6 +8,9 @@ export const TIPOS_ALERTA = [
   "auditoria_devida",
   "desvio_pilares",
   "drift_critico",
+  // Sprint 42 (Fundação Comercial) — ver
+  // src/notificacoes/application/monitor-comercial.ts.
+  "lead_parado",
 ] as const;
 export type TipoAlerta = (typeof TIPOS_ALERTA)[number];
 

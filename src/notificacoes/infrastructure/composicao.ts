@@ -5,6 +5,7 @@ import { DrizzleBuildLogRepository } from "@/build_logs/infrastructure/build-log
 import { DrizzlePecaDeConteudoRepository } from "@/conteudo/infrastructure/peca-de-conteudo-repository";
 import { DrizzlePilarRepository } from "@/conteudo/infrastructure/pilar-e-serie-fixa-repository";
 import { DrizzleFundamentoRepository } from "@/fundamento/infrastructure/fundamento-repository";
+import { DrizzleLeadRepository } from "@/pipeline_comercial/infrastructure/lead-repository";
 import { criarEventDispatcher } from "@/event_log/infrastructure/composicao";
 import { DrizzleUnitOfWork } from "@infra/persistence/db/unit-of-work";
 
@@ -17,6 +18,8 @@ export function criarDependenciasDeNotificacoes() {
     pecaDeConteudoRepository: new DrizzlePecaDeConteudoRepository(),
     pilarRepository: new DrizzlePilarRepository(),
     fundamentoRepository: new DrizzleFundamentoRepository(),
+    // Sprint 42 — usado por `verificarLeadsParados`.
+    leadRepository: new DrizzleLeadRepository(),
     eventPublisher: criarEventDispatcher(),
     unitOfWork: new DrizzleUnitOfWork(),
   };

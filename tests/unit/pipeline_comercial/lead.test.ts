@@ -4,6 +4,9 @@ import {
   podeSerAgendado,
   podeSerMarcadoComoReunido,
   podeSerConvertido,
+  podeSerMarcadoComoPerdido,
+  estaAtivo,
+  STATUS_COMERCIAL,
 } from "@/pipeline_comercial/domain/lead";
 
 describe("Transições de status_comercial do Lead", () => {
@@ -29,5 +32,27 @@ describe("Transições de status_comercial do Lead", () => {
     expect(podeSerConvertido({ statusComercial: "novo" })).toBe(false);
     expect(podeSerConvertido({ statusComercial: "qualificado" })).toBe(false);
     expect(podeSerConvertido({ statusComercial: "agendado" })).toBe(false);
+  });
+
+  // Sprint 42 (Fundação Comercial)
+  it("permite marcar como perdido a partir de qualquer estágio ativo do funil", () => {
+    const estagiosAtivos = STATUS_COMERCIAL.filter(
+      (s) => s !== "convertido_cliente" && s !== "perdido"
+    );
+    for (const status of estagiosAtivos) {
+      expect(podeSerMarcadoComoPerdido({ statusComercial: status })).toBe(true);
+    }
+  });
+
+  it("nunca permite marcar como perdido um lead já convertido ou já perdido", () => {
+    expect(podeSerMarcadoComoPerdido({ statusComercial: "convertido_cliente" })).toBe(false);
+    expect(podeSerMarcadoComoPerdido({ statusComercial: "perdido" })).toBe(false);
+  });
+
+  it("estaAtivo é o inverso exato de 'resolvido' (convertido_cliente/perdido)", () => {
+    expect(estaAtivo({ statusComercial: "novo" })).toBe(true);
+    expect(estaAtivo({ statusComercial: "reunido" })).toBe(true);
+    expect(estaAtivo({ statusComercial: "convertido_cliente" })).toBe(false);
+    expect(estaAtivo({ statusComercial: "perdido" })).toBe(false);
   });
 });

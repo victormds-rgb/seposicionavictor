@@ -19,6 +19,19 @@ export const lead = pgTable("lead", {
   // enum: novo | qualificando | qualificado | agendado | reunido | convertido_cliente | perdido
   statusComercial: text("status_comercial").notNull().default("novo"),
   metadata: jsonb("metadata"),
+  // Sprint 42 (Fundação Comercial) — colunas novas em `lead`, nenhuma
+  // tabela nova. `origemLead` (acima) permanece como detalhe livre
+  // histórico; `canalOrigem` é a versão estruturada/agrupável dele
+  // (enum fechado, ver src/pipeline_comercial/domain/lead.ts).
+  canalOrigem: text("canal_origem"),
+  campanha: text("campanha"),
+  interesse: text("interesse"),
+  // Nunca escrito a partir de `updatedAt` — só por ações que
+  // representam contato comercial real (ver
+  // src/pipeline_comercial/domain/lead-repository.ts).
+  ultimoContatoEm: timestamp("ultimo_contato_em", { withTimezone: true }),
+  proximoContatoEm: timestamp("proximo_contato_em", { withTimezone: true }),
+  motivoPerda: text("motivo_perda"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }).enableRLS();

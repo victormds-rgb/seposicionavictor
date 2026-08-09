@@ -10,6 +10,7 @@ import { listarAlertas } from "@/notificacoes/application/gestao-de-alertas";
 import { criarDependenciasDeNotificacoes } from "@/notificacoes/infrastructure/composicao";
 import { listarLeads } from "@/pipeline_comercial/application/listar-leads";
 import { criarDependenciasDoPipelineComercial } from "@/pipeline_comercial/infrastructure/composicao";
+import { calcularOportunidadesComerciais } from "@/pipeline_comercial/domain/inteligencia-comercial";
 import { listarClientes } from "@/clientes/application/listar-clientes";
 import { criarDependenciasDeClientes } from "@/clientes/infrastructure/composicao";
 import { listarProjetos } from "@/projetos/application/listar-e-encerrar-projeto";
@@ -131,6 +132,12 @@ export default async function DashboardPage() {
   const leadsAtivos = leads.filter(
     (l) => l.statusComercial !== "convertido_cliente" && l.statusComercial !== "perdido"
   );
+
+  // Sprint 42 (Fundação Comercial) — reaproveita a mesma consulta de
+  // leads acima, só reorganiza pelas três lentes já definidas em
+  // src/pipeline_comercial/domain/inteligencia-comercial.ts (nenhum
+  // cálculo novo fora do domínio, mesmo espírito da Sprint 34).
+  const oportunidades = calcularOportunidadesComerciais(leads, hoje);
 
   const clientes = await listarClientes({}, { clienteRepository: depsClientes.clienteRepository });
 
@@ -399,6 +406,52 @@ export default async function DashboardPage() {
                   </Link>
                 </Card>
               ))}
+            </div>
+          )}
+        </Section>
+
+        <Section title="Oportunidades comerciais">
+          {oportunidades.leadsQuentes.length === 0 &&
+          oportunidades.leadsParados.length === 0 &&
+          oportunidades.followUpsHoje.length === 0 ? (
+            <EmptyState message="Nenhuma oportunidade comercial pedindo atenção agora." />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {oportunidades.leadsQuentes.length > 0 && (
+                <Card className="p-4 shadow-none">
+                  <p className="text-sm font-medium text-zinc-900">
+                    🔥 {oportunidades.leadsQuentes.length} oportunidade
+                    {oportunidades.leadsQuentes.length > 1 ? "s" : ""} quente
+                    {oportunidades.leadsQuentes.length > 1 ? "s" : ""}
+                  </p>
+                  <Link href="/pipeline?filtro=quentes" className={CLASSE_BOTAO_CARTAO}>
+                    Ver oportunidades
+                  </Link>
+                </Card>
+              )}
+              {oportunidades.leadsParados.length > 0 && (
+                <Card className="p-4 shadow-none">
+                  <p className="text-sm font-medium text-zinc-900">
+                    ⚠️ {oportunidades.leadsParados.length} lead
+                    {oportunidades.leadsParados.length > 1 ? "s" : ""} sem contato há mais de 48h
+                  </p>
+                  <Link href="/pipeline?filtro=parados" className={CLASSE_BOTAO_CARTAO}>
+                    Ver leads parados
+                  </Link>
+                </Card>
+              )}
+              {oportunidades.followUpsHoje.length > 0 && (
+                <Card className="p-4 shadow-none">
+                  <p className="text-sm font-medium text-zinc-900">
+                    📅 {oportunidades.followUpsHoje.length} follow-up
+                    {oportunidades.followUpsHoje.length > 1 ? "s" : ""} vence
+                    {oportunidades.followUpsHoje.length > 1 ? "m" : ""} hoje
+                  </p>
+                  <Link href="/pipeline?filtro=follow_up_hoje" className={CLASSE_BOTAO_CARTAO}>
+                    Ver follow-ups
+                  </Link>
+                </Card>
+              )}
             </div>
           )}
         </Section>
