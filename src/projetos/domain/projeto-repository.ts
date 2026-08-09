@@ -8,7 +8,7 @@ export interface FiltrosProjeto {
 }
 
 export interface ProjetoRepository {
-  criar(projeto: Omit<Projeto, "id">): Promise<Projeto>;
+  criar(projeto: Omit<Projeto, "id" | "criadoEm">): Promise<Projeto>;
   buscarPorId(id: string): Promise<Projeto | null>;
   atualizarStatus(id: string, status: StatusProjeto): Promise<void>;
   atualizarCamposDeCase(

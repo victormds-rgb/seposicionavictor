@@ -22,6 +22,14 @@ export interface Projeto {
   numeroResultado: string | null;
   status: StatusProjeto;
   metadata: Record<string, unknown> | null;
+  // Sprint 39 (Memória Executiva REAL do MeuCMO — Dashboard): única
+  // exceção no domínio a um timestamp técnico genérico, e só porque a
+  // Sprint pediu explicitamente uma forma de saber se um Projeto
+  // pronto_para_case surgiu depois da última visita ao Dashboard —
+  // sem isto não há como distinguir "projeto novo" de "projeto antigo
+  // que já estava pronto". Nenhuma regra de negócio lê este campo,
+  // só a apresentação (src/app/(shell)/dashboard/memoria-executiva.ts).
+  criadoEm: Date;
 }
 
 /**

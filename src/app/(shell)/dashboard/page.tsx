@@ -15,6 +15,9 @@ import { criarDependenciasDeClientes } from "@/clientes/infrastructure/composica
 import { listarProjetos } from "@/projetos/application/listar-e-encerrar-projeto";
 import { criarDependenciasDeProjetos } from "@/projetos/infrastructure/composicao";
 import { listarPecasDeConteudo } from "@/conteudo/application/listar-pecas-de-conteudo";
+import { createSupabaseServerClient } from "@infra/auth/supabase-server";
+import { calcularMudancasDesdeUltimaVisita, interpretarUltimaVisita } from "./memoria-executiva";
+import { RegistrarVisita } from "./_components/registrar-visita";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
@@ -293,50 +296,32 @@ export default async function DashboardPage() {
       "Se hoje fosse seu primeiro dia como Diretor de Marketing desta empresa, por onde você começaria?";
   }
 
-  // Sprint 38 (Memória Executiva) — LIMITAÇÃO DOCUMENTADA: o sistema
-  // não tem conceito de "última visita" (nenhuma tabela nova foi
-  // criada para isso, por restrição explícita da sprint). O que esta
-  // seção mostra não é um diff real contra uma visita anterior — é o
-  // mesmo estado "pendente/ativo agora" já usado nas seções acima,
-  // reaproveitado sem nenhuma query nova. Por isso ficam de fora
-  // exemplos do enunciado que exigiriam comparação histórica real
-  // (ex.: "a distribuição dos pilares mudou") — não dá pra afirmar
-  // isso sem guardar um snapshot anterior, o que a sprint proíbe
-  // criar. Ver relatório da Sprint 38 para a sugestão futura (uma
-  // coluna `ultimoAcessoEm` no usuário, ou um timestamp em sessão,
-  // seria o suficiente — não implementado aqui).
-  const mudancasDetectadas: string[] = [];
+  // Sprint 39 (Memória Executiva REAL) — substitui a versão da
+  // Sprint 38, que reapresentava o estado atual como se fosse
+  // novidade. Agora compara de verdade contra `ultimaVisitaEm`
+  // (guardada em user_metadata do Supabase Auth — ver
+  // src/app/(shell)/dashboard/actions.ts). A LEITURA acontece aqui,
+  // ANTES de qualquer atualização — o timestamp só é avançado depois
+  // que a página já renderizou de verdade no navegador
+  // (<RegistrarVisita /> abaixo, via useEffect), nunca durante este
+  // render.
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const ultimaVisitaEm = interpretarUltimaVisita(user?.user_metadata?.ultimaVisitaEm);
+  const primeiraVisita = ultimaVisitaEm === null;
 
-  if (alertasAtivos.length > 0) {
-    mudancasDetectadas.push(
-      alertasAtivos.length === 1
-        ? "1 alerta novo desde sua última visita."
-        : `${alertasAtivos.length} alertas novos desde sua última visita.`
-    );
-  }
-
-  if (pendenciasInbox.length > 0) {
-    mudancasDetectadas.push(
-      pendenciasInbox.length === 1
-        ? "1 novo registro chegou à Inbox."
-        : `${pendenciasInbox.length} novos registros chegaram à Inbox.`
-    );
-  }
-
-  if (itensDoDia.length > 0) {
-    mudancasDetectadas.push("Novos itens apareceram na sua Agenda de hoje.");
-  }
-
-  if (projetosProntosParaCase.length > 0) {
-    mudancasDetectadas.push(
-      projetosProntosParaCase.length === 1
-        ? "Um Projeto ficou pronto para virar Case."
-        : `${projetosProntosParaCase.length} Projetos ficaram prontos para virar Case.`
-    );
-  }
+  const mudancasReais = calcularMudancasDesdeUltimaVisita({
+    ultimaVisitaEm,
+    alertas: alertasAtivos,
+    registrosInbox: pendenciasInbox,
+    projetosProntosParaCase,
+  });
 
   return (
     <div>
+      <RegistrarVisita />
       <PageHeader title="MeuCMO" description="Seu Diretor de Marketing movido por IA." />
 
       <div className="space-y-4">
@@ -347,12 +332,14 @@ export default async function DashboardPage() {
         </Section>
 
         <Section title="Desde sua última visita">
-          {mudancasDetectadas.length === 0 ? (
-            <EmptyState message="Nada mudou desde sua última visita." />
+          {primeiraVisita ? (
+            <EmptyState message="Esta é sua primeira visita — a partir de agora o MeuCMO acompanha o que muda." />
+          ) : mudancasReais.length === 0 ? (
+            <EmptyState message="Nenhuma mudança relevante desde sua última visita." />
           ) : (
             <Card className="p-4 shadow-none">
               <ul className="space-y-1 text-sm text-zinc-700">
-                {mudancasDetectadas.map((mudanca) => (
+                {mudancasReais.map((mudanca) => (
                   <li key={mudanca}>✓ {mudanca}</li>
                 ))}
               </ul>

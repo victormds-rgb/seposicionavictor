@@ -25,6 +25,7 @@ function paraDominio(row: ProjetoRow): Projeto {
     numeroResultado: row.numeroResultado,
     status: row.status as StatusProjeto,
     metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+    criadoEm: row.createdAt,
   };
 }
 
@@ -39,7 +40,7 @@ function criterioParaDominio(row: CriterioRow): CriterioDeLancamento {
 }
 
 export class DrizzleProjetoRepository implements ProjetoRepository {
-  async criar(input: Omit<Projeto, "id">): Promise<Projeto> {
+  async criar(input: Omit<Projeto, "id" | "criadoEm">): Promise<Projeto> {
     const [row] = await db
       .insert(projeto)
       .values({
