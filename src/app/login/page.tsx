@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signIn } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { FormField } from "@/components/ui/form-field";
 
 /**
  * Página de login — Sprint 24 (Primeira versão visual), rebranding
- * "MeuCMO" na Sprint 32.
+ * "MeuCMO" na Sprint 32, link de cadastro funcional na Sprint 40.
  *
  * Camada de apresentação apenas: `signIn` (actions.ts) não foi
  * alterado — mesmos campos (`email`/`password`), mesmo fluxo de erro
@@ -50,7 +51,9 @@ export default async function LoginPage({
 
         <div className="mt-6 border-t border-zinc-200 pt-4 text-center text-sm">
           <p className="text-zinc-500">Primeiro acesso?</p>
-          <p className="mt-1 font-medium text-zinc-400">Ative seu Workspace (em breve)</p>
+          <Link href="/cadastro" className="mt-1 block font-medium text-zinc-900 underline">
+            Criar minha conta
+          </Link>
         </div>
       </Card>
     </main>

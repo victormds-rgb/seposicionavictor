@@ -80,6 +80,17 @@ const envSchema = z.object({
   // projeto (ver README.md, seção "Jobs e Scheduler").
   CRON_SECRET: z.preprocess((v) => (v === "" ? undefined : v), z.string().min(1).optional()),
 
+  // ── 5c. Cadastro — allowlist de acesso (Sprint 40) ───────────────────
+  // Sistema pessoal, ainda em dogfooding (proxy.ts documenta: "usuário
+  // único, qualquer sessão autenticada é a sessão de Victor" — nenhum
+  // repositório filtra por usuário). Abrir /cadastro sem allowlist
+  // deixaria qualquer pessoa na internet criar uma conta com acesso
+  // total aos dados reais de negócio. Lista de e-mails separada por
+  // vírgula (comparação case-insensitive, ver src/app/cadastro/actions.ts).
+  // Sem esta variável, /cadastro recusa todo cadastro (fail-closed,
+  // mesmo padrão do CRON_SECRET acima).
+  SIGNUP_ALLOWED_EMAILS: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
+
   // ── 5. Playwright / E2E (tests/e2e) ─────────────────────────────────
   // Só necessárias para rodar `npm run test:e2e` — usuário real do
   // Supabase Auth do projeto (nunca inventado pelos testes). Ver

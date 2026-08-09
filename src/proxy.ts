@@ -53,9 +53,14 @@ export async function proxy(request: NextRequest) {
   // usuário para autenticar. /api/cron (Sprint 30 — Scheduler) pelo
   // mesmo motivo: o Vercel Cron não tem cookie de sessão nenhum — a
   // própria rota se autentica via CRON_SECRET (Authorization: Bearer),
-  // não via este Proxy.
+  // não via este Proxy. /cadastro (Sprint 40) precisa ser público pelo
+  // motivo oposto de /login: é exatamente a página que cria a sessão —
+  // quem chega nela ainda não tem uma. Controle de quem pode de fato
+  // criar conta é feito dentro da própria Server Action (allowlist,
+  // ver src/app/cadastro/actions.ts), nunca aqui.
   const isRotaPublica =
     request.nextUrl.pathname.startsWith("/login") ||
+    request.nextUrl.pathname.startsWith("/cadastro") ||
     request.nextUrl.pathname === "/health" ||
     request.nextUrl.pathname.startsWith("/api/cron");
 
