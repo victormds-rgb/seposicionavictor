@@ -92,9 +92,11 @@ test.describe("Agenda", () => {
     await item.getByRole("link", { name: "Inbox" }).click();
     await expect(page).toHaveURL(/\/inbox\?reuniaoId=/);
 
-    const capturarTexto = page.getByRole("region", { name: "Capturar (texto)" });
+    // Sprint de UX/UI (Fase 5): região única "Capturar nova entrada"
+    // substitui as antigas "Capturar (texto)"/"Capturar (arquivo)".
+    const capturarTexto = page.getByRole("region", { name: "Capturar nova entrada" });
     await capturarTexto.getByLabel("Conteúdo").fill(notaDaReuniao);
-    await capturarTexto.getByRole("button", { name: "Capturar" }).click();
+    await capturarTexto.getByRole("button", { name: "Capturar entrada" }).click();
 
     const registro = page.getByRole("listitem").filter({ hasText: notaDaReuniao });
     await expect(registro.getByText("IA sugere:")).toBeVisible();

@@ -1,3 +1,160 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * Design Tokens — FDE (Sprint de Redesign de Produto, Fase 2).
+ *
+ * Convenção HSL "triplet" (sem a função hsl() em volta) para que o
+ * Tailwind possa aplicar opacidade via `/`, ex.: `bg-primary/10`.
+ * Valores documentados na proposta de identidade visual entregue
+ * antes desta fase — "Graphite & Signal": base neutra fria e contida
+ * + índigo-violeta como cor primária (estrutura/confiança) + dourado
+ * como accent raro (atenção/discovery, nunca decorativo).
+ *
+ * Aditivo por design: nenhuma das 11 páginas do produto usa esses
+ * tokens ainda — só os componentes novos desta fase e a página de
+ * demonstração (`/design-system`). Aplicar ao produto existente é a
+ * Fase 2-F, fora do escopo deste checkpoint.
+ */
+:root {
+  /* Superfícies */
+  --surface: 0 0% 100%;
+  --surface-raised: 222 20% 99%;
+  --surface-sunken: 222 16% 96%;
+  --border-subtle: 222 14% 91%;
+  --border-default: 222 12% 85%;
+
+  /* Texto */
+  --ink-primary: 224 22% 12%;
+  --ink-secondary: 222 12% 38%;
+  --ink-tertiary: 222 10% 58%;
+
+  /* Primária — índigo-violeta */
+  --primary: 257 46% 39%;
+  --primary-hover: 257 50% 33%;
+  --primary-foreground: 0 0% 100%;
+  --primary-tint: 257 60% 97%;
+
+  /* Accent — dourado, uso raro (atenção/discovery) */
+  --accent: 38 85% 49%;
+  --accent-hover: 38 85% 43%;
+  --accent-foreground: 28 40% 14%;
+  --accent-tint: 42 95% 95%;
+
+  /* Semânticas */
+  --success: 152 55% 32%;
+  --success-foreground: 0 0% 100%;
+  --success-tint: 152 55% 95%;
+
+  --warning: 24 88% 46%;
+  --warning-foreground: 0 0% 100%;
+  --warning-tint: 38 95% 95%;
+
+  --danger: 358 68% 45%;
+  --danger-foreground: 0 0% 100%;
+  --danger-tint: 358 70% 96%;
+
+  --info: 214 60% 45%;
+  --info-foreground: 0 0% 100%;
+  --info-tint: 214 70% 96%;
+
+  --ring: 257 46% 39%;
+
+  /* Raio — escala com intenção, não uniforme */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Sombra — um único token, reservado a camadas de verdade
+     (Modal/Dropdown/Toast/Drawer). Cards em repouso não usam. */
+  --shadow-elevated: 0 8px 24px -4px rgb(15 15 20 / 0.12), 0 2px 6px -2px rgb(15 15 20 / 0.08);
+}
+
+/**
+ * Linguagem de animação — Fase 2. Sem plugin novo (ex.:
+ * tailwindcss-animate) — `@starting-style` é CSS nativo (baseline em
+ * navegadores modernos; ferramenta pessoal, sem requisito de suporte
+ * legado). Entrada suave de 200-250ms, nunca bounce/spring — isso lê
+ * como "startup", não "executivo" (proposta de identidade visual).
+ * Reservado a Modal/Toast (fade+escala sutil) e Drawer (slide lateral).
+ */
+.fde-pop-in,
+.fde-pop-in::backdrop {
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out,
+    overlay 200ms ease-out allow-discrete,
+    display 200ms allow-discrete;
+}
+.fde-pop-in {
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+}
+.fde-pop-in[open] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.fde-pop-in::backdrop {
+  opacity: 0;
+}
+.fde-pop-in[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  .fde-pop-in[open],
+  .fde-pop-in[open]::backdrop {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+.fde-slide-in {
+  transition:
+    opacity 220ms ease-out,
+    transform 220ms ease-out,
+    overlay 220ms ease-out allow-discrete,
+    display 220ms allow-discrete;
+}
+.fde-slide-in {
+  opacity: 0;
+  transform: translateX(16px);
+}
+.fde-slide-in[open] {
+  opacity: 1;
+  transform: translateX(0);
+}
+.fde-slide-in::backdrop {
+  opacity: 0;
+  transition: opacity 220ms ease-out allow-discrete;
+}
+.fde-slide-in[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  .fde-slide-in[open],
+  .fde-slide-in[open]::backdrop {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+@keyframes fde-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Entrada de elementos normais (não `<dialog>`/popover) que aparecem
+   via `{condicao && <div>}` — Toast e Dropdown — a animação dispara
+   na montagem via keyframe, não via `[open]`. */
+@keyframes fde-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

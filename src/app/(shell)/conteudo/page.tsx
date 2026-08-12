@@ -7,6 +7,7 @@ import { CANAIS } from "@/shared/enums/canal";
 import { criarPecaAction, criarDerivacaoAction, avancarStatusAction, publicarPecaAction } from "./actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
+import { Card } from "@/components/ui/card";
 import { SelectField } from "@/components/ui/select-field";
 import { TextareaField } from "@/components/ui/textarea-field";
 import { RadioGroup } from "@/components/ui/radio-group";
@@ -69,9 +70,12 @@ export default async function ConteudoPage({
 
   return (
     <div>
-      <PageHeader title="Conteúdo" />
+      <PageHeader
+        title="Conteúdo"
+        description="Crie peças, acompanhe o status de publicação e a distribuição entre pilares."
+      />
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Section title="Sem case pessoal? Siga a árvore (SOM Cap. 2.6)">
           <form className="max-w-md space-y-4">
             <RadioGroup
@@ -146,10 +150,18 @@ export default async function ConteudoPage({
         <Section title="Distribuição de Pilares (real vs. meta)">
           <ul className="space-y-2 text-sm text-zinc-700">
             {distribuicao.map((d) => (
-              <li key={d.pilarId} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
-                {d.nome}: meta {d.pesoAlvoPercentual}% · real {d.pesoRealPercentual}% ·{" "}
-                {d.totalPublicadas} publicadas · desvio {d.desvio > 0 ? "+" : ""}
-                {d.desvio}%
+              <li
+                key={d.pilarId}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-2 last:border-0 last:pb-0"
+              >
+                <span>
+                  {d.nome} — meta {d.pesoAlvoPercentual}% · real {d.pesoRealPercentual}% ·{" "}
+                  {d.totalPublicadas} publicadas
+                </span>
+                <Badge variant={Math.abs(d.desvio) > 10 ? "warning" : "neutral"}>
+                  {d.desvio > 0 ? "+" : ""}
+                  {d.desvio}%
+                </Badge>
               </li>
             ))}
           </ul>
@@ -157,9 +169,10 @@ export default async function ConteudoPage({
 
         <Section title={`Peças (${pecas.length})`}>
           {pecas.length === 0 && <EmptyState message="Nenhuma peça ainda." />}
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {pecas.map((peca) => (
-              <li key={peca.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
+              <li key={peca.id}>
+              <Card className="p-4 shadow-none">
                 <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
                   <strong className="font-medium">{peca.canal}</strong>
                   <span className="text-zinc-500">{ROTULOS_ORIGEM_PECA[peca.origemTipo] ?? peca.origemTipo}</span>
@@ -170,7 +183,9 @@ export default async function ConteudoPage({
                     <span className="text-zinc-500">derivada de {peca.pecaOrigemId}</span>
                   )}
                 </p>
-                {peca.conteudoTexto && <p className="mt-1 text-sm text-zinc-700">{peca.conteudoTexto}</p>}
+                {peca.conteudoTexto && (
+                  <p className="mt-1 text-sm text-zinc-700 line-clamp-2">{peca.conteudoTexto}</p>
+                )}
 
                 {peca.status !== "publicado" && (
                   <form action={avancarStatusAction} className="mt-2">
@@ -215,6 +230,7 @@ export default async function ConteudoPage({
                     </form>
                   </details>
                 )}
+              </Card>
               </li>
             ))}
           </ul>

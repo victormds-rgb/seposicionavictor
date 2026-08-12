@@ -27,9 +27,12 @@ test.describe("Inbox", () => {
 
     await page.goto("/inbox");
 
-    const capturarTexto = page.getByRole("region", { name: "Capturar (texto)" });
+    // Sprint de UX/UI (Fase 5): as regiões "Capturar (texto)" e
+    // "Capturar (arquivo)" foram fundidas em uma única região com
+    // abas — o modo "Texto" é o padrão ao carregar a página.
+    const capturarTexto = page.getByRole("region", { name: "Capturar nova entrada" });
     await capturarTexto.getByLabel("Conteúdo").fill(conteudo);
-    await capturarTexto.getByRole("button", { name: "Capturar" }).click();
+    await capturarTexto.getByRole("button", { name: "Capturar entrada" }).click();
 
     const item = page.getByRole("listitem").filter({ hasText: conteudo });
     await expect(item).toBeVisible();
@@ -43,9 +46,10 @@ test.describe("Inbox", () => {
 
     // O registro continua na lista (a Inbox não filtra por status por
     // padrão) — o que muda é a transição de estado: some a sugestão
-    // pendente e o status passa a `classificado`.
+    // pendente e o status passa a `classificado`. `ROTULOS_STATUS_REGISTRO`
+    // exibe o rótulo capitalizado ("Classificado"), daí o flag `i`.
     await expect(item.getByText("IA sugere:")).toHaveCount(0);
-    await expect(item.getByText(/\bclassificado\b/)).toBeVisible();
+    await expect(item.getByText(/\bclassificado\b/i)).toBeVisible();
   });
 
   test("rejeitar sugestão mantém o registro na Inbox, aguardando nova classificação", async ({
@@ -54,9 +58,9 @@ test.describe("Inbox", () => {
     const conteudo = `Registro E2E ${sufixoUnico()} — nota solta sem contexto claro.`;
 
     await page.goto("/inbox");
-    const capturarTexto = page.getByRole("region", { name: "Capturar (texto)" });
+    const capturarTexto = page.getByRole("region", { name: "Capturar nova entrada" });
     await capturarTexto.getByLabel("Conteúdo").fill(conteudo);
-    await capturarTexto.getByRole("button", { name: "Capturar" }).click();
+    await capturarTexto.getByRole("button", { name: "Capturar entrada" }).click();
 
     const item = page.getByRole("listitem").filter({ hasText: conteudo });
     await expect(item.getByText("IA sugere:")).toBeVisible();

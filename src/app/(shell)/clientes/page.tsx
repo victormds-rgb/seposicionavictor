@@ -2,6 +2,7 @@ import { listarClientes } from "@/clientes/application/listar-clientes";
 import { criarDependenciasDeClientes } from "@/clientes/infrastructure/composicao";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -50,13 +51,16 @@ export default async function ClientesPage() {
 
   return (
     <div>
-      <PageHeader title="Clientes" />
+      <PageHeader
+        title="Clientes"
+        description="Clientes já avaliados pela árvore de decisão, prontos para acompanhamento."
+      />
 
       <Section title={`Clientes (${clientes.length})`}>
         {clientes.length === 0 && (
           <EmptyState message="Nenhum cliente ainda — converta um Lead no Pipeline Comercial." />
         )}
-        <ul className="space-y-4">
+        <ul className="space-y-3">
           {await Promise.all(
             clientes.map(async (cliente) => {
               // Sprint 33.5 (Refinamento): mostra o nome do Lead de
@@ -67,28 +71,27 @@ export default async function ClientesPage() {
                 : null;
 
               return (
-                <li key={cliente.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
-                  <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
-                    <strong className="font-medium">{cliente.nome}</strong>
-                    {cliente.setor && <span className="text-zinc-500">{cliente.setor}</span>}
-                    <Badge variant={variantDoStatus(cliente.status)}>{rotuloDoStatus(cliente.status)}</Badge>
-                    {cliente.classificacaoResultante && (
-                      <Badge variant={variantDaClassificacao(cliente.classificacaoResultante)}>
-                        {ROTULOS_CLASSIFICACAO[cliente.classificacaoResultante] ??
-                          cliente.classificacaoResultante}
-                      </Badge>
-                    )}
-                  </p>
-                  <p className="mt-1 text-sm text-zinc-500">
-                    Classificação:{" "}
-                    {cliente.classificacaoResultante
-                      ? (ROTULOS_CLASSIFICACAO[cliente.classificacaoResultante] ??
-                        cliente.classificacaoResultante)
-                      : "não avaliado"}
-                  </p>
-                  {leadDeOrigem && (
-                    <p className="mt-1 text-sm text-zinc-500">Origem: Lead &quot;{leadDeOrigem.nome}&quot;</p>
-                  )}
+                <li key={cliente.id}>
+                  <Card className="p-4 shadow-none">
+                    <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
+                      <strong className="font-medium">{cliente.nome}</strong>
+                      {cliente.setor && <span className="text-zinc-500">{cliente.setor}</span>}
+                      <Badge variant={variantDoStatus(cliente.status)}>{rotuloDoStatus(cliente.status)}</Badge>
+                      {cliente.classificacaoResultante ? (
+                        <Badge variant={variantDaClassificacao(cliente.classificacaoResultante)}>
+                          {ROTULOS_CLASSIFICACAO[cliente.classificacaoResultante] ??
+                            cliente.classificacaoResultante}
+                        </Badge>
+                      ) : (
+                        <Badge>Não avaliado</Badge>
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {leadDeOrigem
+                        ? `Origem: Lead "${leadDeOrigem.nome}"`
+                        : "Sem Lead de origem registrado"}
+                    </p>
+                  </Card>
                 </li>
               );
             })

@@ -12,7 +12,7 @@ import type { ButtonHTMLAttributes } from "react";
  * (`(shell)/_components/submit-button.tsx`) não foi tocado nesta
  * etapa — só a tela de Login usa este componente por enquanto.
  */
-type ButtonVariant = "primary" | "secondary";
+type ButtonVariant = "primary" | "secondary" | "destructive" | "ghost";
 
 export function Button({
   variant = "primary",
@@ -27,6 +27,8 @@ export function Button({
   const variants: Record<ButtonVariant, string> = {
     primary: "bg-zinc-900 text-white hover:bg-zinc-800",
     secondary: "bg-white text-zinc-900 border border-zinc-300 hover:bg-zinc-50",
+    destructive: "bg-white text-red-700 border border-red-200 hover:bg-red-50",
+    ghost: "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900",
   };
 
   return (

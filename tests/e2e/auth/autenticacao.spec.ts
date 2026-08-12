@@ -41,6 +41,12 @@ test.describe("Autenticação", () => {
     await page.getByRole("button", { name: "Entrar" }).click();
 
     await expect(page).toHaveURL("/dashboard");
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    // Checkpoint G (Redesign do Dashboard): o h1 deixou de ser o
+    // título estático "FDE" e virou uma saudação real por horário
+    // ("Bom dia"/"Boa tarde"/"Boa noite" + nome) — não dá para casar
+    // com um texto exato, só com o padrão da saudação.
+    await expect(
+      page.getByRole("heading", { level: 1, name: /^(Bom dia|Boa tarde|Boa noite)/ })
+    ).toBeVisible();
   });
 });

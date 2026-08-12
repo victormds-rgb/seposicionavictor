@@ -19,7 +19,8 @@ test.describe("Pipeline Comercial", () => {
 
     const novoLead = page.getByRole("region", { name: "Novo Lead" });
     await novoLead.getByLabel("Nome").fill(nome);
-    await novoLead.getByLabel("Origem").fill("indicação");
+    // "Canal de origem" é um <select> (Sprint 42) — não um campo de texto.
+    await novoLead.getByLabel("Canal de origem").selectOption("indicacao");
     await novoLead.getByRole("button", { name: "Criar Lead" }).click();
 
     const lead = page.getByRole("listitem").filter({ hasText: nome });
@@ -48,7 +49,9 @@ test.describe("Pipeline Comercial", () => {
     await lead.locator('input[name="sinalNaoCumprimento"][value="nao"]').check();
     await lead.getByRole("button", { name: "Converter em Cliente" }).click();
 
-    await expect(lead.getByText("convertido_cliente")).toBeVisible();
+    // rotuloDoStatus() (Sprint 33.5) traduz "convertido_cliente" para o
+    // texto exibido ao usuário.
+    await expect(lead.getByText("Convertido em Cliente")).toBeVisible();
 
     await page.goto("/clientes");
     await expect(page.getByRole("listitem").filter({ hasText: nome })).toBeVisible();

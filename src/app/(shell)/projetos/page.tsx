@@ -19,7 +19,9 @@ import {
 } from "./actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
+import { Card } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { SelectField } from "@/components/ui/select-field";
 import { TextareaField } from "@/components/ui/textarea-field";
@@ -77,37 +79,46 @@ export default async function ProjetosPage() {
 
   return (
     <div>
-      <PageHeader title="Projetos" />
+      <PageHeader
+        title="Projetos"
+        description="Acompanhe cada projeto até virar Case, e o Build Log de produtos próprios."
+      />
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Section title="Novo Projeto">
-          <form action={criarProjetoAction} className="max-w-md space-y-4">
-            <FormField label="Nome">
-              <Input type="text" name="nome" required />
-            </FormField>
-            <SelectField label="Tipo" name="tipo" defaultValue="cliente_externo">
-              <option value="cliente_externo">Cliente externo</option>
-              <option value="produto_proprio">Produto próprio</option>
-            </SelectField>
-            <SelectField label="Cliente (obrigatório se cliente externo)" name="clienteId" defaultValue="">
-              <option value="">—</option>
-              {clientes.map((cliente) => (
-                <option key={cliente.id} value={cliente.id}>
-                  {cliente.nome}
-                </option>
-              ))}
-            </SelectField>
-            <TextareaField label="Desculpa inicial (obrigatório se cliente externo)" name="desculpaInicial" />
-            <FormField label="Custo mensal (obrigatório se cliente externo)">
-              <Input type="number" name="custoMensal" step="0.01" />
-            </FormField>
+          <form action={criarProjetoAction} className="max-w-md space-y-6">
+            <FormSection title="Básico">
+              <FormField label="Nome">
+                <Input type="text" name="nome" required />
+              </FormField>
+              <SelectField label="Tipo" name="tipo" defaultValue="cliente_externo">
+                <option value="cliente_externo">Cliente externo</option>
+                <option value="produto_proprio">Produto próprio</option>
+              </SelectField>
+            </FormSection>
+
+            <FormSection title="Cliente externo">
+              <SelectField label="Cliente (obrigatório se cliente externo)" name="clienteId" defaultValue="">
+                <option value="">—</option>
+                {clientes.map((cliente) => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.nome}
+                  </option>
+                ))}
+              </SelectField>
+              <TextareaField label="Desculpa inicial (obrigatório se cliente externo)" name="desculpaInicial" />
+              <FormField label="Custo mensal (obrigatório se cliente externo)">
+                <Input type="number" name="custoMensal" step="0.01" />
+              </FormField>
+            </FormSection>
+
             <Button type="submit">Criar Projeto</Button>
           </form>
         </Section>
 
         <Section title={`Projetos (${projetos.length})`}>
           {projetos.length === 0 && <EmptyState message="Nenhum projeto ainda." />}
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {await Promise.all(
               projetos.map(async (projeto) => {
                 const cases = await listarCasesDoProjeto(projeto.id, {
@@ -125,7 +136,8 @@ export default async function ProjetosPage() {
                     : null;
 
                 return (
-                  <li key={projeto.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
+                  <li key={projeto.id}>
+                  <Card className="p-4 shadow-none">
                     <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
                       <strong className="font-medium">{projeto.nome}</strong>
                       <span className="text-zinc-500">{ROTULOS_TIPO_PROJETO[projeto.tipo] ?? projeto.tipo}</span>
@@ -204,7 +216,7 @@ export default async function ProjetosPage() {
                     {projeto.status !== "encerrado" && (
                       <form action={encerrarProjetoAction} className="mt-3">
                         <input type="hidden" name="projetoId" value={projeto.id} />
-                        <Button type="submit" variant="secondary">
+                        <Button type="submit" variant="destructive">
                           Encerrar Projeto
                         </Button>
                       </form>
@@ -270,6 +282,7 @@ export default async function ProjetosPage() {
                         ))}
                       </div>
                     )}
+                  </Card>
                   </li>
                 );
               })

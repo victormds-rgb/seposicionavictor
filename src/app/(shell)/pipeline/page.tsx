@@ -19,7 +19,9 @@ import {
 import { converterLeadEmClienteAction } from "../clientes/actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
+import { Card } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { SelectField } from "@/components/ui/select-field";
 import { TextareaField } from "@/components/ui/textarea-field";
@@ -143,53 +145,63 @@ export default async function PipelinePage({
 
       <div className="space-y-4">
         <Section title="Novo Lead">
-          <form action={criarLeadAction} className="max-w-md space-y-4">
-            <FormField label="Nome">
-              <Input type="text" name="nome" required />
-            </FormField>
-            <SelectField label="Canal de origem" name="canalOrigem" defaultValue="">
-              <option value="">—</option>
-              {CANAIS_ORIGEM_LEAD.map((canal) => (
-                <option key={canal} value={canal}>
-                  {ROTULOS_CANAL_ORIGEM[canal]}
-                </option>
-              ))}
-            </SelectField>
-            <FormField label="Origem (detalhe)">
-              <Input type="text" name="origemLead" placeholder="indicação de fulano, campanha X..." />
-            </FormField>
-            <FormField label="Campanha">
-              <Input type="text" name="campanha" placeholder="opcional" />
-            </FormField>
-            <FormField label="O que ele precisa (interesse)">
-              <Input type="text" name="interesse" placeholder="opcional" />
-            </FormField>
-            <FormField label="SDR responsável">
-              <Input type="text" name="sdrResponsavel" />
-            </FormField>
-            <SelectField label="Temperatura" name="temperatura" defaultValue="">
-              <option value="">—</option>
-              <option value="frio">Frio</option>
-              <option value="morno">Morno</option>
-              <option value="quente">Quente</option>
-            </SelectField>
-            <FormField label="Ticket estimado">
-              <Input type="number" name="ticketEstimado" step="0.01" />
-            </FormField>
+          <form action={criarLeadAction} className="max-w-md space-y-6">
+            <FormSection title="Informações básicas">
+              <FormField label="Nome">
+                <Input type="text" name="nome" required />
+              </FormField>
+              <SelectField label="Canal de origem" name="canalOrigem" defaultValue="">
+                <option value="">—</option>
+                {CANAIS_ORIGEM_LEAD.map((canal) => (
+                  <option key={canal} value={canal}>
+                    {ROTULOS_CANAL_ORIGEM[canal]}
+                  </option>
+                ))}
+              </SelectField>
+              <FormField label="Detalhes adicionais" help="opcional">
+                <Input type="text" name="origemLead" placeholder="indicação de fulano, campanha X..." />
+              </FormField>
+            </FormSection>
+
+            <FormSection title="Qualificação">
+              <FormField label="Campanha">
+                <Input type="text" name="campanha" placeholder="opcional" />
+              </FormField>
+              <FormField label="O que ele precisa (interesse)">
+                <Input type="text" name="interesse" placeholder="opcional" />
+              </FormField>
+              <FormField label="SDR responsável">
+                <Input type="text" name="sdrResponsavel" />
+              </FormField>
+            </FormSection>
+
+            <FormSection title="Comercial">
+              <SelectField label="Temperatura" name="temperatura" defaultValue="">
+                <option value="">—</option>
+                <option value="frio">Frio</option>
+                <option value="morno">Morno</option>
+                <option value="quente">Quente</option>
+              </SelectField>
+              <FormField label="Ticket estimado">
+                <Input type="number" name="ticketEstimado" step="0.01" />
+              </FormField>
+            </FormSection>
+
             <Button type="submit">Criar Lead</Button>
           </form>
         </Section>
 
         <Section title={`Leads (${leads.length})`}>
           {leads.length === 0 && <EmptyState message="Nenhum lead ainda." />}
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {leads.map((lead) => {
               const score = scores.get(lead.id) ?? null;
               const parado = leadEstaParado(lead, agora);
               const dias = Math.floor(diasSemContato(lead, agora));
 
               return (
-                <li key={lead.id} className="border-b border-zinc-100 pb-4 last:border-0 last:pb-0">
+                <li key={lead.id}>
+                <Card className="p-4 shadow-none">
                   <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
                     <strong className="font-medium">{lead.nome}</strong>
                     <span className="text-zinc-500">
@@ -324,7 +336,7 @@ export default async function PipelinePage({
                     <div className="mt-3 flex flex-wrap gap-4">
                       <form action={registrarContatoComLeadAction}>
                         <input type="hidden" name="leadId" value={lead.id} />
-                        <Button type="submit" variant="secondary">
+                        <Button type="submit" variant="ghost">
                           Registrar contato agora
                         </Button>
                       </form>
@@ -347,12 +359,13 @@ export default async function PipelinePage({
                       <form action={marcarLeadComoPerdidoAction} className="mt-2 max-w-md space-y-4">
                         <input type="hidden" name="leadId" value={lead.id} />
                         <TextareaField label="Motivo da perda" name="motivoPerda" required />
-                        <Button type="submit" variant="secondary">
+                        <Button type="submit" variant="destructive">
                           Confirmar perda
                         </Button>
                       </form>
                     </details>
                   )}
+                </Card>
                 </li>
               );
             })}

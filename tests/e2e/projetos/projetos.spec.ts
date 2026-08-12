@@ -37,7 +37,9 @@ test.describe("Projetos", () => {
     await projeto.getByLabel("Número (resultado)").fill("18 leads qualificados");
     await projeto.getByRole("button", { name: "Atualizar campos de case" }).click();
 
-    await expect(projeto.getByText(/\bpronto_para_case\b/)).toBeVisible();
+    // ROTULOS_STATUS_PROJETO (Sprint 33.5) traduz "pronto_para_case"
+    // para o texto exibido ao usuário.
+    await expect(projeto.getByText("Pronto para Case")).toBeVisible();
     await expect(projeto.getByText("completo")).toBeVisible();
 
     await projeto.getByRole("button", { name: "Criar Case a partir deste Projeto" }).click();

@@ -7,20 +7,29 @@ import type {
 } from "@/inbox/domain/registro-bruto";
 import { TIPOS_DESTINO } from "@/shared/enums/tipo-destino";
 import {
-  capturarTextoAction,
-  capturarArquivoAction,
   responderSugestaoAction,
   solicitarNovaSugestaoAction,
   descartarRegistroBrutoAction,
   classificarManualmenteAction,
 } from "./actions";
-import { SubmitButton } from "../_components/submit-button";
+import { CapturaForm } from "./_components/captura-form";
+import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 /**
- * Inbox Universal — Sprint 2.
+ * Inbox Universal — Sprint 2, redesenhada na Sprint de UX/UI (Fase 5
+ * — prioridade alta: a captura estava um formulário administrativo
+ * cru, sem nenhum agrupamento visual).
  *
- * Fluxo completo: captura (texto/arquivo) → sugestão de IA →
- * confirmação humana (aceitar/editar/rejeitar) → destino registrado.
+ * Fluxo completo inalterado: captura (texto/arquivo) → sugestão de IA
+ * → confirmação humana (aceitar/editar/rejeitar) → destino registrado.
  * Busca e filtros via query string (UI_UX.md, seção 6;
  * INTERACTION_MODEL.md, seção 5).
  */
@@ -38,6 +47,13 @@ const ROTULOS_STATUS_REGISTRO: Record<StatusRegistroBruto, string> = {
   descartado: "Descartado",
 };
 
+function variantDoStatusRegistro(status: StatusRegistroBruto): "neutral" | "info" | "warning" | "success" {
+  if (status === "classificado") return "success";
+  if (status === "classificacao_sugerida") return "info";
+  if (status === "em_processamento") return "warning";
+  return "neutral";
+}
+
 const ROTULOS_TIPO_DESTINO: Record<(typeof TIPOS_DESTINO)[number], string> = {
   projeto: "Projeto",
   build_log: "Build Log",
@@ -45,6 +61,7 @@ const ROTULOS_TIPO_DESTINO: Record<(typeof TIPOS_DESTINO)[number], string> = {
   tarefa: "Tarefa",
   ativo_conhecimento: "Ativo de Conhecimento",
 };
+
 export default async function InboxPage({
   searchParams,
 }: {
@@ -86,207 +103,197 @@ export default async function InboxPage({
     })
   );
 
+  // Uma entrada "precisa de decisão" (fica sempre visível, sem
+  // colapsar) quando ainda há algo para Victor fazer; o resto
+  // (classificado/descartado, sem sugestão pendente) já foi resolvido
+  // e só precisa ficar escaneável, não em destaque.
+  function precisaDeDecisao(status: StatusRegistroBruto): boolean {
+    return status !== "classificado" && status !== "descartado";
+  }
+
   return (
     <div>
-      <h1>Inbox</h1>
+      <PageHeader
+        title="Inbox"
+        description="Capture qualquer coisa e deixe a IA sugerir para onde vai — você sempre decide."
+      />
 
-      <section aria-labelledby="capturar-texto">
-        <h2 id="capturar-texto">Capturar (texto)</h2>
-        {params.reuniaoId && <p>Associando à reunião {params.reuniaoId}.</p>}
-        <form action={capturarTextoAction}>
-          {params.reuniaoId && <input type="hidden" name="reuniaoId" value={params.reuniaoId} />}
-          <label>
-            Tipo de entrada
-            <select name="tipoEntrada" defaultValue="texto">
-              <option value="texto">Texto</option>
-              <option value="observacao">Observação</option>
-              <option value="mensagem">Mensagem</option>
-              <option value="link">Link</option>
-              <option value="email">E-mail (colado)</option>
-              <option value="transcricao">Transcrição</option>
-            </select>
-          </label>
-          <label>
-            Origem
-            <select name="origem" defaultValue="ideia">
-              <option value="ideia">Ideia</option>
-              <option value="aprendizado">Aprendizado</option>
-              <option value="reuniao">Reunião</option>
-              <option value="email">E-mail</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="outro">Outro</option>
-            </select>
-          </label>
-          <label>
-            Conteúdo
-            <textarea name="conteudoTexto" required />
-          </label>
-          <SubmitButton>Capturar</SubmitButton>
-        </form>
-      </section>
+      <div className="space-y-6">
+        <Section title="Capturar nova entrada">
+          <CapturaForm reuniaoId={params.reuniaoId} />
+        </Section>
 
-      <section aria-labelledby="capturar-arquivo">
-        <h2 id="capturar-arquivo">Capturar (arquivo)</h2>
-        {params.erro ? <p role="alert">{params.erro}</p> : null}
-        <form action={capturarArquivoAction}>
-          <label>
-            Tipo de entrada
-            <select name="tipoEntrada" defaultValue="documento">
-              <option value="audio">Áudio</option>
-              <option value="imagem">Imagem</option>
-              <option value="pdf">PDF</option>
-              <option value="video">Vídeo</option>
-              <option value="print">Print</option>
-              <option value="documento">Documento</option>
-            </select>
-          </label>
-          <label>
-            Origem
-            <select name="origem" defaultValue="ideia">
-              <option value="ideia">Ideia</option>
-              <option value="aprendizado">Aprendizado</option>
-              <option value="reuniao">Reunião</option>
-              <option value="outro">Outro</option>
-            </select>
-          </label>
-          <label>
-            Arquivo
-            <input type="file" name="arquivo" required />
-          </label>
-          <SubmitButton>Capturar</SubmitButton>
-        </form>
-      </section>
+        <Section
+          title={`Registros (${registrosComSugestao.length})`}
+          action={
+            <form className="flex flex-wrap items-end gap-2">
+              <FormField label="Status">
+                <Select name="status" defaultValue={params.status ?? ""} className="w-40">
+                  <option value="">Todos</option>
+                  <option value="capturado">Capturado</option>
+                  <option value="em_processamento">Em processamento</option>
+                  <option value="classificacao_sugerida">Sugestão da IA</option>
+                  <option value="classificado">Classificado</option>
+                  <option value="descartado">Descartado</option>
+                </Select>
+              </FormField>
+              <FormField label="Busca">
+                <Input type="text" name="busca" defaultValue={params.busca ?? ""} className="w-40" />
+              </FormField>
+              <Button type="submit" variant="secondary">
+                Filtrar
+              </Button>
+            </form>
+          }
+        >
+          {params.erro && (
+            <p role="alert" className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {params.erro}
+            </p>
+          )}
 
-      <section aria-labelledby="filtros">
-        <h2 id="filtros">Filtros</h2>
-        <form>
-          <label>
-            Status
-            <select name="status" defaultValue={params.status ?? ""}>
-              <option value="">Todos</option>
-              <option value="capturado">Capturado</option>
-              <option value="em_processamento">Em processamento</option>
-              <option value="classificacao_sugerida">Sugestão da IA</option>
-              <option value="classificado">Classificado</option>
-              <option value="descartado">Descartado</option>
-            </select>
-          </label>
-          <label>
-            Busca
-            <input type="text" name="busca" defaultValue={params.busca ?? ""} />
-          </label>
-          <SubmitButton>Filtrar</SubmitButton>
-        </form>
-      </section>
+          {registrosComSugestao.length === 0 && (
+            <EmptyState message="Nenhum registro encontrado — Inbox em dia." />
+          )}
 
-      <section aria-labelledby="lista-registros">
-        <h2 id="lista-registros">Registros ({registrosComSugestao.length})</h2>
-        {registrosComSugestao.length === 0 && <p>Nenhum registro encontrado — Inbox em dia.</p>}
-        <ul>
-          {registrosComSugestao.map(({ registro, sugestaoPendente, ultimaSugestaoRejeitada }) => (
-            <li key={registro.id}>
-              <p>
-                <strong>{registro.tipoEntrada}</strong> · {registro.origem} ·{" "}
-                <em>{ROTULOS_STATUS_REGISTRO[registro.status]}</em>
-              </p>
-              {registro.conteudoTexto && <p>{registro.conteudoTexto}</p>}
+          <ul className="space-y-3">
+            {registrosComSugestao.map(({ registro, sugestaoPendente, ultimaSugestaoRejeitada }) => {
+              const emAberto = precisaDeDecisao(registro.status);
 
-              {sugestaoPendente && (
-                <div>
-                  <p>
-                    IA sugere:{" "}
-                    <strong>
-                      {(() => {
-                        const tipo = (
-                          sugestaoPendente.conteudoSugerido as { tipoDestinoSugerido?: string }
-                        ).tipoDestinoSugerido;
-                        return tipo && tipo in ROTULOS_TIPO_DESTINO
-                          ? ROTULOS_TIPO_DESTINO[tipo as keyof typeof ROTULOS_TIPO_DESTINO]
-                          : tipo;
-                      })()}
-                    </strong>{" "}
-                    — {(sugestaoPendente.conteudoSugerido as { justificativa?: string }).justificativa}
-                    {sugestaoPendente.confianca !== null &&
-                      ` (confiança: ${sugestaoPendente.confianca})`}
-                  </p>
+              return (
+                <li key={registro.id}>
+                  <Card className="p-4 shadow-none">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="max-w-2xl text-sm text-zinc-900 line-clamp-2">
+                        {registro.conteudoTexto ?? "(arquivo — sem prévia de texto)"}
+                      </p>
+                      <Badge variant={variantDoStatusRegistro(registro.status)}>
+                        {ROTULOS_STATUS_REGISTRO[registro.status]}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {registro.tipoEntrada} · {registro.origem} ·{" "}
+                      {registro.dataCaptura.toLocaleDateString("pt-BR")}
+                    </p>
 
-                  <details>
-                    <summary>Como a IA chegou nessa sugestão?</summary>
-                    <ul>
-                      <li>Provider: {sugestaoPendente.provider ?? "—"}</li>
-                      <li>Modelo: {sugestaoPendente.modelo ?? "—"}</li>
-                      <li>Versão do prompt: {sugestaoPendente.promptVersion ?? "—"}</li>
-                      <li>Tokens (entrada/saída): {sugestaoPendente.tokensInput ?? "—"}/{sugestaoPendente.tokensOutput ?? "—"}</li>
-                      <li>Custo estimado: {sugestaoPendente.custoEstimado ?? "—"}</li>
-                      <li>Tempo de resposta: {sugestaoPendente.tempoRespostaMs ?? "—"}ms</li>
-                    </ul>
-                  </details>
+                    {sugestaoPendente && (
+                      <div className="mt-3 rounded-md bg-blue-50 p-3">
+                        <p className="text-sm text-zinc-800">
+                          IA sugere:{" "}
+                          <strong className="font-medium">
+                            {(() => {
+                              const tipo = (
+                                sugestaoPendente.conteudoSugerido as { tipoDestinoSugerido?: string }
+                              ).tipoDestinoSugerido;
+                              return tipo && tipo in ROTULOS_TIPO_DESTINO
+                                ? ROTULOS_TIPO_DESTINO[tipo as keyof typeof ROTULOS_TIPO_DESTINO]
+                                : tipo;
+                            })()}
+                          </strong>{" "}
+                          — {(sugestaoPendente.conteudoSugerido as { justificativa?: string }).justificativa}
+                          {sugestaoPendente.confianca !== null &&
+                            ` (confiança: ${sugestaoPendente.confianca})`}
+                        </p>
 
-                  <form action={responderSugestaoAction}>
-                    <input type="hidden" name="sugestaoId" value={sugestaoPendente.id} />
-                    <input type="hidden" name="decisao" value="aceitar" />
-                    <SubmitButton>Aceitar</SubmitButton>
-                  </form>
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-xs text-zinc-500">
+                            Como a IA chegou nessa sugestão?
+                          </summary>
+                          <ul className="mt-1 space-y-0.5 text-xs text-zinc-500">
+                            <li>Provider: {sugestaoPendente.provider ?? "—"}</li>
+                            <li>Modelo: {sugestaoPendente.modelo ?? "—"}</li>
+                            <li>Versão do prompt: {sugestaoPendente.promptVersion ?? "—"}</li>
+                            <li>
+                              Tokens (entrada/saída): {sugestaoPendente.tokensInput ?? "—"}/
+                              {sugestaoPendente.tokensOutput ?? "—"}
+                            </li>
+                            <li>Custo estimado: {sugestaoPendente.custoEstimado ?? "—"}</li>
+                            <li>Tempo de resposta: {sugestaoPendente.tempoRespostaMs ?? "—"}ms</li>
+                          </ul>
+                        </details>
 
-                  <form action={responderSugestaoAction}>
-                    <input type="hidden" name="sugestaoId" value={sugestaoPendente.id} />
-                    <input type="hidden" name="decisao" value="editar" />
-                    <label>
-                      Corrigir para
-                      <select name="tipoDestinoEscolhido">
-                        {TIPOS_DESTINO.map((tipo) => (
-                          <option key={tipo} value={tipo}>
-                            {ROTULOS_TIPO_DESTINO[tipo]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <SubmitButton>Editar e confirmar</SubmitButton>
-                  </form>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <form action={responderSugestaoAction}>
+                            <input type="hidden" name="sugestaoId" value={sugestaoPendente.id} />
+                            <input type="hidden" name="decisao" value="aceitar" />
+                            <Button type="submit">Aceitar</Button>
+                          </form>
 
-                  <form action={responderSugestaoAction}>
-                    <input type="hidden" name="sugestaoId" value={sugestaoPendente.id} />
-                    <input type="hidden" name="decisao" value="rejeitar" />
-                    <SubmitButton>Rejeitar</SubmitButton>
-                  </form>
-                </div>
-              )}
+                          <form
+                            action={responderSugestaoAction}
+                            className="flex items-center gap-2"
+                          >
+                            <input type="hidden" name="sugestaoId" value={sugestaoPendente.id} />
+                            <input type="hidden" name="decisao" value="editar" />
+                            <Select name="tipoDestinoEscolhido" className="w-40">
+                              {TIPOS_DESTINO.map((tipo) => (
+                                <option key={tipo} value={tipo}>
+                                  {ROTULOS_TIPO_DESTINO[tipo]}
+                                </option>
+                              ))}
+                            </Select>
+                            <Button type="submit" variant="secondary">
+                              Editar e confirmar
+                            </Button>
+                          </form>
 
-              {!sugestaoPendente &&
-                (registro.status === "capturado" || registro.status === "classificacao_sugerida") && (
-                  <form action={classificarManualmenteAction}>
-                    <input type="hidden" name="registroBrutoId" value={registro.id} />
-                    <label>
-                      Classificar manualmente (sem IA) para
-                      <select name="tipoDestinoEscolhido">
-                        {TIPOS_DESTINO.map((tipo) => (
-                          <option key={tipo} value={tipo}>
-                            {ROTULOS_TIPO_DESTINO[tipo]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <SubmitButton>Confirmar destino</SubmitButton>
-                  </form>
-                )}
+                          <form action={responderSugestaoAction}>
+                            <input type="hidden" name="sugestaoId" value={sugestaoPendente.id} />
+                            <input type="hidden" name="decisao" value="rejeitar" />
+                            <Button type="submit" variant="destructive">
+                              Rejeitar
+                            </Button>
+                          </form>
+                        </div>
+                      </div>
+                    )}
 
-              {ultimaSugestaoRejeitada && ultimaSugestaoRejeitada.status === "rejeitada" && (
-                <form action={solicitarNovaSugestaoAction}>
-                  <input type="hidden" name="sugestaoId" value={ultimaSugestaoRejeitada.id} />
-                  <SubmitButton>Solicitar nova sugestão</SubmitButton>
-                </form>
-              )}
+                    {!sugestaoPendente &&
+                      (registro.status === "capturado" ||
+                        registro.status === "classificacao_sugerida") && (
+                        <form
+                          action={classificarManualmenteAction}
+                          className="mt-3 flex flex-wrap items-center gap-2"
+                        >
+                          <input type="hidden" name="registroBrutoId" value={registro.id} />
+                          <span className="text-sm text-zinc-600">Classificar manualmente para</span>
+                          <Select name="tipoDestinoEscolhido" className="w-40">
+                            {TIPOS_DESTINO.map((tipo) => (
+                              <option key={tipo} value={tipo}>
+                                {ROTULOS_TIPO_DESTINO[tipo]}
+                              </option>
+                            ))}
+                          </Select>
+                          <Button type="submit" variant="secondary">
+                            Confirmar destino
+                          </Button>
+                        </form>
+                      )}
 
-              {registro.status !== "classificado" && registro.status !== "descartado" && (
-                <form action={descartarRegistroBrutoAction}>
-                  <input type="hidden" name="registroBrutoId" value={registro.id} />
-                  <SubmitButton>Descartar</SubmitButton>
-                </form>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+                    {ultimaSugestaoRejeitada && ultimaSugestaoRejeitada.status === "rejeitada" && (
+                      <form action={solicitarNovaSugestaoAction} className="mt-3">
+                        <input type="hidden" name="sugestaoId" value={ultimaSugestaoRejeitada.id} />
+                        <Button type="submit" variant="secondary">
+                          Solicitar nova sugestão
+                        </Button>
+                      </form>
+                    )}
+
+                    {emAberto && (
+                      <form action={descartarRegistroBrutoAction} className="mt-3">
+                        <input type="hidden" name="registroBrutoId" value={registro.id} />
+                        <Button type="submit" variant="ghost">
+                          Descartar
+                        </Button>
+                      </form>
+                    )}
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      </div>
     </div>
   );
 }

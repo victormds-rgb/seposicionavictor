@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { Bell, Sparkles, ArrowRight, Inbox as InboxIcon, Calendar, FolderKanban, TrendingUp } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { listarItensAgenda } from "@/agenda/application/listar-itens-agenda";
 import { criarDependenciasDaAgenda } from "@/agenda/infrastructure/composicao";
-import { ROTINA_SEMANAL_FIXA } from "@/agenda/domain/item-agenda";
 import { listarRegistrosBrutos } from "@/inbox/application/listar-registros-brutos";
 import { criarDependenciasDaInbox } from "@/inbox/infrastructure/composicao";
 import { calcularDistribuicaoDePilares } from "@/conteudo/application/calcular-distribuicao-de-pilares";
@@ -19,16 +20,23 @@ import { listarPecasDeConteudo } from "@/conteudo/application/listar-pecas-de-co
 import { createSupabaseServerClient } from "@infra/auth/supabase-server";
 import { calcularMudancasDesdeUltimaVisita, interpretarUltimaVisita } from "./memoria-executiva";
 import { RegistrarVisita } from "./_components/registrar-visita";
-import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 
 /**
- * Dashboard — estrutura definida na Sprint 1 (UI_UX.md, seção 5),
- * completada na Sprint 9 com dados reais, estilo Sprint 26.
+ * Dashboard — Centro de Comando do FDE (Checkpoint G — Redesign do
+ * Dashboard). Estrutura original da Sprint 1/9, evoluída em várias
+ * sprints de inteligência (34-39) para um Dashboard "achatado" — três
+ * seções diferentes (Resumo Executivo / Recomendações / mini-painéis)
+ * repetindo as MESMAS 5 condições. O Checkpoint G consolida isso numa
+ * narrativa única: Contexto → Visão Executiva → Atenção → Próximas
+ * Ações → Estado da Operação → Atividade Recente → Recomendações.
+ *
+ * Nenhuma query nova: todo dado abaixo já era carregado antes desta
+ * etapa — só mudou a curadoria/composição visual (auditoria completa
+ * no checkpoint anterior).
  *
  * Apenas consulta dados — o MonitorDeConsistencia roda como Job do
  * Scheduler (`infra/scheduler/jobs/monitor-de-consistencia-job.ts`),
@@ -36,64 +44,35 @@ import { Card } from "@/components/ui/card";
  */
 export const dynamic = "force-dynamic";
 
-/**
- * Sprint 23 — DOGFOODING_REPORT.md, item 3: sem isto, o Dashboard
- * mostrava só o tipo genérico "rotina_fixa", sem dizer qual atividade
- * é — obrigando abrir a Agenda para descobrir. A descrição já existia
- * como dado em ROTINA_SEMANAL_FIXA, só não estava sendo exibida aqui.
- */
-function descreverItemDeAgenda(item: { tipo: string; rotinaFixaReferencia: string | null }): string {
-  if (item.tipo === "rotina_fixa" && item.rotinaFixaReferencia) {
-    const rotina = ROTINA_SEMANAL_FIXA.find((r) => r.referencia === item.rotinaFixaReferencia);
-    if (rotina) return rotina.descricao;
-  }
-  return item.tipo === "tarefa_com_prazo" ? "Tarefa com prazo" : "Reunião";
-}
-
-// Sprint 33.5 (Refinamento): rótulo legível para o tipo do Alerta —
-// antes aparecia cru ("drift_critico", "desvio_pilares"). Mesmo
-// mapeamento usado na tela de Alertas.
+// Sprint 33.5 (Refinamento) + Checkpoint G: "lead_parado" (Sprint 42)
+// estava ausente aqui — mesmo mapeamento de `alertas/page.tsx`.
 const ROTULOS_TIPO_ALERTA: Record<string, string> = {
   build_log_ausente: "Build Log ausente",
   auditoria_devida: "Auditoria devida",
   desvio_pilares: "Desvio de pilares",
   drift_critico: "Drift crítico",
+  lead_parado: "Lead parado",
 };
 
-const ROTULOS_STATUS_ITEM: Record<string, string> = {
-  agendado: "Agendado",
-  concluido: "Concluído",
-  perdido: "Perdido",
-};
-
-// Sprint 34 (Briefing do Dia): link de ação de cada cartão — mesma
-// linguagem visual do variant "secondary" de Button
-// (src/components/ui/button.tsx), só que como <a> (navegação de
-// página, não submissão de formulário — Button não tem `href`).
-const CLASSE_BOTAO_CARTAO =
-  "mt-3 inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2";
-
-interface Recomendacao {
-  icone: string;
-  titulo: string;
-  descricao: string;
-  href: string;
-  rotuloAcao: string;
+function saudacaoPorHorario(hora: number): string {
+  if (hora < 12) return "Bom dia";
+  if (hora < 18) return "Boa tarde";
+  return "Boa noite";
 }
 
-interface RecomendacaoEstrategica {
-  icone: string;
+interface AcaoProxima {
+  icone: LucideIcon;
   texto: string;
-  justificativa?: string;
   href: string;
   rotuloAcao: string;
 }
 
-// Sprint 35 (Briefing Inteligente): não recalcula nada — só decide
-// que frase mostrar para uma condição que os dados acima já provam
-// verdadeira. Nenhuma frase aparece se a condição correspondente for
-// falsa (nunca "frase falsa"). Copy evita termos técnicos (Sprint 35,
-// seção "Copy": nada de "fora da meta", "pendência", "registro").
+interface RecomendacaoFde {
+  texto: string;
+  motivo: string;
+  href: string;
+  rotuloAcao: string;
+}
 
 export default async function DashboardPage() {
   const depsAgenda = criarDependenciasDaAgenda();
@@ -123,26 +102,31 @@ export default async function DashboardPage() {
   const distribuicao = await calcularDistribuicaoDePilares(undefined, depsConteudo);
   const desviosRelevantes = distribuicao.filter((d) => Math.abs(d.desvio) > 10);
 
+  // Checkpoint G: a lista continua vindo inteira do repositório (sem
+  // `limit` — FiltrosAlerta não suporta, adicionar isso seria backend
+  // novo, fora do aprovado nesta etapa) — mas só os 3 alertas mais
+  // antigos (proxy real de "mais urgente", já que o domínio Alerta
+  // não tem campo de severidade) são renderizados no bloco Atenção. O
+  // total real continua visível na frase e no badge do topbar.
   const alertasAtivos = await listarAlertas(
     { status: "ativo" },
     { alertaRepository: depsNotificacoes.alertaRepository }
   );
+  const alertasParaAtencao = [...alertasAtivos]
+    .sort((a, b) => a.dataDisparo.getTime() - b.dataDisparo.getTime())
+    .slice(0, 3);
 
   const leads = await listarLeads({}, { leadRepository: depsPipeline.leadRepository });
   const leadsAtivos = leads.filter(
     (l) => l.statusComercial !== "convertido_cliente" && l.statusComercial !== "perdido"
   );
-
-  // Sprint 42 (Fundação Comercial) — reaproveita a mesma consulta de
-  // leads acima, só reorganiza pelas três lentes já definidas em
-  // src/pipeline_comercial/domain/inteligencia-comercial.ts (nenhum
-  // cálculo novo fora do domínio, mesmo espírito da Sprint 34).
   const oportunidades = calcularOportunidadesComerciais(leads, hoje);
 
   const clientes = await listarClientes({}, { clienteRepository: depsClientes.clienteRepository });
 
   const projetos = await listarProjetos({}, { projetoRepository: depsProjetos.projetoRepository });
   const projetosAtivos = projetos.filter((p) => p.status !== "encerrado");
+  const projetosProntosParaCase = projetos.filter((p) => p.status === "pronto_para_case");
 
   const pecas = await listarPecasDeConteudo(
     {},
@@ -151,141 +135,9 @@ export default async function DashboardPage() {
   const conteudosEmProducao = pecas.filter((p) => p.status !== "publicado");
   const conteudosPublicados = pecas.filter((p) => p.status === "publicado");
 
-  // Sprint 34 — Briefing do Dia: reaproveita exclusivamente os dados
-  // já carregados acima para as demais seções (nenhuma query nova,
-  // nenhum cálculo novo) — só reorganiza em recomendações acionáveis.
-  const projetosProntosParaCase = projetos.filter((p) => p.status === "pronto_para_case");
-
-  // Ordem de prioridade fixada pela Sprint 35: Alertas → Inbox →
-  // Agenda → Projetos prontos para Case → Conteúdo. Mesma ordem para
-  // as frases do resumo e para os cartões, evitando o resumo apontar
-  // uma prioridade e os cartões abaixo mostrarem outra.
-  const recomendacoes: Recomendacao[] = [];
-  const frasesResumo: string[] = [];
-
-  if (alertasAtivos.length > 0) {
-    const [primeiro] = alertasAtivos;
-    frasesResumo.push("Há alertas importantes que precisam da sua atenção.");
-    recomendacoes.push({
-      icone: "🔴",
-      titulo: "Prioridade",
-      descricao:
-        alertasAtivos.length > 1
-          ? `${primeiro!.condicaoGatilho} (+ ${alertasAtivos.length - 1} outro(s) alerta ativo)`
-          : primeiro!.condicaoGatilho,
-      href: "/alertas",
-      rotuloAcao: "Ir para Alertas",
-    });
-  }
-
-  if (pendenciasInbox.length > 0) {
-    frasesResumo.push(
-      `Existem ${pendenciasInbox.length} item(ns) aguardando sua decisão na Inbox.`
-    );
-    recomendacoes.push({
-      icone: "📥",
-      titulo: "Caixa de Entrada",
-      descricao: `Existem ${pendenciasInbox.length} item(ns) aguardando sua decisão.`,
-      href: "/inbox",
-      rotuloAcao: "Abrir Inbox",
-    });
-  }
-
-  if (itensDoDia.length > 0) {
-    frasesResumo.push(`Você tem ${itensDoDia.length} atividade(s) na agenda hoje.`);
-    recomendacoes.push({
-      icone: "📅",
-      titulo: "Hoje",
-      descricao: `Você possui ${itensDoDia.length} atividade(s).`,
-      href: "/agenda",
-      rotuloAcao: "Abrir Agenda",
-    });
-  }
-
-  if (projetosProntosParaCase.length > 0) {
-    frasesResumo.push("Um projeto já pode ser transformado em Case.");
-    recomendacoes.push({
-      icone: "⭐",
-      titulo: "Oportunidade",
-      descricao: "Existe um projeto pronto para virar Case.",
-      href: "/projetos",
-      rotuloAcao: "Abrir Projetos",
-    });
-  }
-
-  if (desviosRelevantes.length > 0) {
-    frasesResumo.push("Sua produção de conteúdo precisa de atenção para se alinhar à meta.");
-    recomendacoes.push({
-      icone: "📊",
-      titulo: "Conteúdo",
-      descricao: "Sua produção de conteúdo precisa de atenção para se alinhar à meta.",
-      href: "/conteudo",
-      rotuloAcao: "Abrir Conteúdo",
-    });
-  }
-
-  // Sprint 36 (Recomendações Estratégicas): mesmas condições já
-  // provadas acima (nenhuma query/cálculo novo) — só aconselha em vez
-  // de informar. Texto deliberadamente diferente do Resumo Executivo
-  // (Sprint 35) para nunca repetir a mesma frase; máximo 3 cartões,
-  // mesma ordem de prioridade Alertas → Inbox → Agenda → Projetos →
-  // Conteúdo.
-  const recomendacoesEstrategicas: RecomendacaoEstrategica[] = [];
-
-  if (alertasAtivos.length > 0) {
-    recomendacoesEstrategicas.push({
-      icone: "🚨",
-      texto: "Eu resolveria os alertas antes de produzir novos conteúdos.",
-      href: "/alertas",
-      rotuloAcao: "Abrir Alertas",
-    });
-  }
-
-  if (pendenciasInbox.length > 0) {
-    recomendacoesEstrategicas.push({
-      icone: "📥",
-      texto: "Eu começaria classificando os registros da Inbox.",
-      justificativa: "Eles podem gerar novos conteúdos, tarefas ou oportunidades.",
-      href: "/inbox",
-      rotuloAcao: "Abrir Inbox",
-    });
-  }
-
-  if (itensDoDia.length > 0) {
-    recomendacoesEstrategicas.push({
-      icone: "📅",
-      texto: "Eu começaria pelas atividades programadas para hoje.",
-      href: "/agenda",
-      rotuloAcao: "Abrir Agenda",
-    });
-  }
-
-  if (projetosProntosParaCase.length > 0) {
-    recomendacoesEstrategicas.push({
-      icone: "⭐",
-      texto: "Eu transformaria este projeto em um Case ainda hoje.",
-      justificativa: "Cases geram autoridade e alimentam sua estratégia de conteúdo.",
-      href: "/projetos",
-      rotuloAcao: "Abrir Projeto",
-    });
-  }
-
-  if (desviosRelevantes.length > 0) {
-    recomendacoesEstrategicas.push({
-      icone: "📊",
-      texto: "Eu equilibraria a produção de conteúdo antes da próxima publicação.",
-      href: "/conteudo",
-      rotuloAcao: "Abrir Conteúdo",
-    });
-  }
-
-  const topRecomendacoesEstrategicas = recomendacoesEstrategicas.slice(0, 3);
-
-  // Sprint 37 (Pergunta Estratégica): mesma ordem de prioridade
-  // (Alertas → Inbox → Agenda → Projetos → Conteúdo), mas só a
-  // primeira condição verdadeira vence — nunca mais de uma pergunta.
-  // Sem condição nenhuma, cai no fallback fixo (não é uma consulta,
-  // é o texto padrão da sprint).
+  // Pergunta Estratégica (Sprint 37): mesma ordem de prioridade de
+  // sempre (Alertas → Inbox → Agenda → Projetos → Conteúdo), só a
+  // primeira condição verdadeira vence.
   let perguntaEstrategica: string;
   if (alertasAtivos.length > 0) {
     perguntaEstrategica = "O que pode acontecer se este alerta continuar aberto por mais alguns dias?";
@@ -303,15 +155,77 @@ export default async function DashboardPage() {
       "Se hoje fosse seu primeiro dia como Diretor de Marketing desta empresa, por onde você começaria?";
   }
 
-  // Sprint 39 (Memória Executiva REAL) — substitui a versão da
-  // Sprint 38, que reapresentava o estado atual como se fosse
-  // novidade. Agora compara de verdade contra `ultimaVisitaEm`
-  // (guardada em user_metadata do Supabase Auth — ver
-  // src/app/(shell)/dashboard/actions.ts). A LEITURA acontece aqui,
-  // ANTES de qualquer atualização — o timestamp só é avançado depois
-  // que a página já renderizou de verdade no navegador
-  // (<RegistrarVisita /> abaixo, via useEffect), nunca durante este
-  // render.
+  // Checkpoint G: Próximas Ações — uma ação por condição real, cada
+  // uma com destino real. `leadsParados` (Sprint 42) reaproveitado
+  // aqui pela primeira vez fora da seção comercial.
+  const proximasAcoes: AcaoProxima[] = [];
+  if (pendenciasInbox.length > 0) {
+    proximasAcoes.push({
+      icone: InboxIcon,
+      texto: `${pendenciasInbox.length} item(ns) aguardando sua decisão na Inbox.`,
+      href: "/inbox",
+      rotuloAcao: "Abrir Inbox",
+    });
+  }
+  if (itensDoDia.length > 0) {
+    proximasAcoes.push({
+      icone: Calendar,
+      texto: `${itensDoDia.length} atividade(s) na agenda hoje.`,
+      href: "/agenda",
+      rotuloAcao: "Abrir Agenda",
+    });
+  }
+  if (projetosProntosParaCase.length > 0) {
+    proximasAcoes.push({
+      icone: FolderKanban,
+      texto: "Um projeto está pronto para virar Case.",
+      href: "/projetos",
+      rotuloAcao: "Abrir Projetos",
+    });
+  }
+  if (oportunidades.leadsParados.length > 0) {
+    proximasAcoes.push({
+      icone: TrendingUp,
+      texto: `${oportunidades.leadsParados.length} lead(s) sem contato há mais de 48h.`,
+      href: "/pipeline?filtro=parados",
+      rotuloAcao: "Abrir Pipeline",
+    });
+  }
+
+  // Checkpoint G: Recomendações do FDE — camada interpretativa,
+  // deliberadamente diferente de Atenção (Alerta) e Próximas Ações
+  // (uma condição = uma ação): cada recomendação SINTETIZA 2 sinais
+  // reais em vez de repetir um fato isolado que já aparece em outro
+  // bloco — evita duplicar a mesma informação em lugares diferentes.
+  const recomendacoesFde: RecomendacaoFde[] = [];
+  if (projetosProntosParaCase.length > 0) {
+    recomendacoesFde.push({
+      texto: "Transforme este projeto em Case antes de criar conteúdo novo.",
+      motivo: "Cases geram autoridade e alimentam sua estratégia de conteúdo.",
+      href: "/projetos",
+      rotuloAcao: "Ver projeto",
+    });
+  }
+  if (desviosRelevantes.length > 0) {
+    const maiorDesvio = [...desviosRelevantes].sort(
+      (a, b) => Math.abs(b.desvio) - Math.abs(a.desvio)
+    )[0]!;
+    recomendacoesFde.push({
+      texto: `Sua produção está desviada da meta em "${maiorDesvio.nome}" (${maiorDesvio.desvio > 0 ? "+" : ""}${maiorDesvio.desvio}%).`,
+      motivo: "Vale equilibrar a distribuição antes da próxima publicação.",
+      href: "/conteudo",
+      rotuloAcao: "Abrir Conteúdo",
+    });
+  }
+  if (oportunidades.leadsQuentes.length > 0 && oportunidades.leadsParados.length > 0) {
+    recomendacoesFde.push({
+      texto: `Você tem ${oportunidades.leadsQuentes.length} oportunidade(s) quente(s) e ${oportunidades.leadsParados.length} lead(s) parado(s) há 48h+.`,
+      motivo: "Priorize contato com os leads parados antes que esfriem.",
+      href: "/pipeline?filtro=parados",
+      rotuloAcao: "Abrir Pipeline",
+    });
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -326,211 +240,221 @@ export default async function DashboardPage() {
     projetosProntosParaCase,
   });
 
+  const nomeCompleto = (user?.user_metadata?.nome as string | undefined) ?? null;
+  const primeiroNome = nomeCompleto?.split(" ")[0] ?? user?.email?.split("@")[0] ?? null;
+  const saudacao = saudacaoPorHorario(hoje.getHours());
+
+  const temPendenciaSemAlerta =
+    pendenciasInbox.length > 0 ||
+    itensDoDia.length > 0 ||
+    projetosProntosParaCase.length > 0 ||
+    oportunidades.leadsParados.length > 0;
+  const fraseContexto =
+    alertasAtivos.length > 0
+      ? "Existem alertas que merecem sua atenção hoje."
+      : temPendenciaSemAlerta
+        ? "Você tem algumas decisões esperando por você hoje."
+        : "Sua operação está tranquila — nada urgente agora.";
+
   return (
     <div>
       <RegistrarVisita />
-      <PageHeader title="MeuCMO" description="Seu Diretor de Marketing movido por IA." />
 
-      <div className="space-y-4">
-        <Section title="Pergunta Estratégica do Dia">
-          <Card className="p-4 shadow-none">
-            <p className="text-sm font-medium text-zinc-900">🤔 {perguntaEstrategica}</p>
-          </Card>
-        </Section>
+      {/* 1-2. Saudação real + contexto curto */}
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink-primary">
+          {saudacao}
+          {primeiroNome ? `, ${primeiroNome}` : ""}
+        </h1>
+        <p className="mt-1 text-sm text-ink-secondary">{fraseContexto}</p>
+      </div>
 
-        <Section title="Desde sua última visita">
-          {primeiraVisita ? (
-            <EmptyState message="Esta é sua primeira visita — a partir de agora o MeuCMO acompanha o que muda." />
-          ) : mudancasReais.length === 0 ? (
-            <EmptyState message="Nenhuma mudança relevante desde sua última visita." />
-          ) : (
-            <Card className="p-4 shadow-none">
-              <ul className="space-y-1 text-sm text-zinc-700">
+      {/* 3. Pergunta Estratégica — único bloco de alto contraste da
+          página, integrado logo abaixo da saudação. */}
+      <div className="mb-6 rounded-lg bg-ink-primary p-5">
+        <p className="text-xs font-medium uppercase tracking-wide text-white/50">Pergunta do dia</p>
+        <p className="mt-2 text-base font-medium text-white">{perguntaEstrategica}</p>
+      </div>
+
+      {/* Ordem visual muda entre mobile e desktop via `order` —
+          mobile prioriza Atenção/Próximas Ações antes das métricas
+          (Regra de Responsividade do Checkpoint G), sem duplicar
+          marcação. */}
+      <div className="flex flex-col gap-6">
+        {/* 4. Visão Executiva — poucos indicadores reais */}
+        <div className="order-3 md:order-1">
+          <Section title="Visão Executiva">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatCard label="Pipeline ativo" value={leadsAtivos.length} />
+              <StatCard label="Projetos ativos" value={projetosAtivos.length} />
+              <StatCard label="Compromissos hoje" value={itensDoDia.length} />
+              <StatCard label="Aguardando decisão" value={pendenciasInbox.length} />
+            </div>
+          </Section>
+        </div>
+
+        {/* 5. Atenção — curadoria do domínio Alerta; total real segue
+            visível, dourado usado uma única vez (ícone do cabeçalho). */}
+        <div className="order-1 md:order-2">
+          <Section title="Atenção">
+            <div className="mb-3 flex items-center gap-2">
+              <Bell className="size-4 shrink-0 text-accent" aria-hidden="true" />
+              <p className="text-sm text-ink-secondary">
+                {alertasAtivos.length === 0
+                  ? "Nada pedindo sua atenção agora."
+                  : alertasAtivos.length === 1
+                    ? "1 coisa merece sua atenção."
+                    : `${alertasAtivos.length} coisas merecem sua atenção.`}
+              </p>
+            </div>
+            {alertasAtivos.length > 0 && (
+              <>
+                <ul className="space-y-2">
+                  {alertasParaAtencao.map((a) => (
+                    <li key={a.id} className="rounded-md border border-border-subtle p-3">
+                      <Badge variant="danger">{ROTULOS_TIPO_ALERTA[a.tipo] ?? a.tipo}</Badge>
+                      <p className="mt-1.5 text-sm text-ink-primary">{a.condicaoGatilho}</p>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/alertas"
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-hover"
+                >
+                  Ver todos os alertas <ArrowRight className="size-3.5" aria-hidden="true" />
+                </Link>
+              </>
+            )}
+          </Section>
+        </div>
+
+        {/* 6. Próximas Ações — uma linha por condição real, destino real */}
+        <div className="order-2 md:order-3">
+          <Section title="Próximas Ações">
+            {proximasAcoes.length === 0 ? (
+              <EmptyState message="Nenhuma ação pendente agora — tudo em dia." />
+            ) : (
+              <ul className="divide-y divide-border-subtle">
+                {proximasAcoes.map((acao) => (
+                  <li
+                    key={acao.texto}
+                    className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <acao.icone className="size-4 shrink-0 text-ink-tertiary" aria-hidden="true" />
+                      <p className="text-sm text-ink-primary">{acao.texto}</p>
+                    </div>
+                    <Link
+                      href={acao.href}
+                      className="shrink-0 text-sm font-medium text-primary hover:text-primary-hover"
+                    >
+                      {acao.rotuloAcao} →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        </div>
+
+        {/* 7. Estado da Operação — "como está minha operação", sem
+            virar mais um grid de números: agrupado por área, números
+            reais lado a lado (real vs. meta), sem tendência inventada. */}
+        <div className="order-4 md:order-4">
+          <Section title="Estado da Operação">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-tertiary">
+                  Comercial
+                </h3>
+                <ul className="mt-2 space-y-1.5 text-sm text-ink-secondary">
+                  <li>{clientes.length} cliente(s).</li>
+                  {oportunidades.leadsQuentes.length > 0 && (
+                    <li>{oportunidades.leadsQuentes.length} oportunidade(s) quente(s).</li>
+                  )}
+                  {oportunidades.followUpsHoje.length > 0 && (
+                    <li>{oportunidades.followUpsHoje.length} follow-up(s) vence(m) hoje.</li>
+                  )}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-tertiary">
+                  Conteúdo
+                </h3>
+                <ul className="mt-2 space-y-1.5 text-sm text-ink-secondary">
+                  <li>{conteudosEmProducao.length} peça(s) em produção.</li>
+                  <li>{conteudosPublicados.length} peça(s) publicada(s).</li>
+                </ul>
+                {distribuicao.length > 0 && (
+                  <ul className="mt-3 space-y-1 border-t border-border-subtle pt-3 text-xs text-ink-tertiary">
+                    {distribuicao.map((d) => (
+                      <li key={d.pilarId} className="flex items-center justify-between gap-2">
+                        <span className="truncate">{d.nome}</span>
+                        <span className="shrink-0">
+                          {d.pesoRealPercentual}% <span className="text-ink-tertiary/70">(meta {d.pesoAlvoPercentual}%)</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </Section>
+        </div>
+
+        {/* 8. Atividade Recente — "Desde sua última visita", mantido */}
+        <div className="order-5 md:order-5">
+          <Section title="Atividade Recente">
+            {primeiraVisita ? (
+              <div className="rounded-md border border-border-subtle bg-surface-sunken p-4">
+                <p className="text-sm font-medium text-ink-primary">Esta é sua primeira visita ao FDE.</p>
+                <p className="mt-1 text-sm text-ink-secondary">
+                  A partir de agora, o FDE acompanha Alertas, Pipeline, Projetos, Conteúdo e Agenda
+                  — e te avisa aqui sempre que algo mudar ou precisar da sua atenção.
+                </p>
+              </div>
+            ) : mudancasReais.length === 0 ? (
+              <EmptyState message="Nenhuma mudança relevante desde sua última visita." />
+            ) : (
+              <ul className="space-y-1 text-sm text-ink-secondary">
                 {mudancasReais.map((mudanca) => (
                   <li key={mudanca}>✓ {mudanca}</li>
                 ))}
               </ul>
-            </Card>
-          )}
-        </Section>
+            )}
+          </Section>
+        </div>
 
-        <Section title="Resumo Executivo">
-          <p className="text-sm text-zinc-500">Seu MeuCMO preparou uma visão rápida da operação.</p>
-
-          {recomendacoes.length === 0 ? (
-            <div className="mt-3">
-              <EmptyState message="Bom dia. Sua operação está saudável. Nenhuma prioridade foi encontrada hoje." />
-            </div>
-          ) : (
-            <>
-              <p className="mt-3 text-sm text-zinc-700">
-                Bom dia. Hoje encontrei {recomendacoes.length} ponto(s) importante(s) na sua
-                operação.
-              </p>
-              <ul className="mt-2 space-y-1 text-sm text-zinc-700">
-                {frasesResumo.map((frase) => (
-                  <li key={frase}>• {frase}</li>
+        {/* 9. Recomendações do FDE — interpretação, não repetição:
+            cada item cruza 2 sinais reais (ver comentário acima, onde
+            a lista é montada). */}
+        <div className="order-6 md:order-6">
+          <Section title="Recomendações do FDE">
+            {recomendacoesFde.length === 0 ? (
+              <EmptyState message="Nenhuma recomendação estratégica no momento." />
+            ) : (
+              <ul className="space-y-3">
+                {recomendacoesFde.map((r) => (
+                  <li key={r.texto} className="rounded-md border border-primary/20 bg-primary-tint p-4">
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-ink-primary">{r.texto}</p>
+                        <p className="mt-1 text-sm text-ink-secondary">{r.motivo}</p>
+                        <Link
+                          href={r.href}
+                          className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-hover"
+                        >
+                          {r.rotuloAcao} <ArrowRight className="size-3.5" aria-hidden="true" />
+                        </Link>
+                      </div>
+                    </div>
+                  </li>
                 ))}
               </ul>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {recomendacoes.map((r) => (
-                  <Card key={r.titulo} className="p-4 shadow-none">
-                    <p className="text-sm font-semibold text-zinc-900">
-                      {r.icone} {r.titulo}
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-600">{r.descricao}</p>
-                    <Link href={r.href} className={CLASSE_BOTAO_CARTAO}>
-                      {r.rotuloAcao}
-                    </Link>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-        </Section>
-
-        <Section title="Recomendações do MeuCMO">
-          {topRecomendacoesEstrategicas.length === 0 ? (
-            <EmptyState message="Nenhuma recomendação estratégica no momento." />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-3">
-              {topRecomendacoesEstrategicas.map((r) => (
-                <Card key={r.texto} className="p-4 shadow-none">
-                  <p className="text-sm font-medium text-zinc-900">
-                    {r.icone} {r.texto}
-                  </p>
-                  {r.justificativa && <p className="mt-1 text-sm text-zinc-500">{r.justificativa}</p>}
-                  <Link href={r.href} className={CLASSE_BOTAO_CARTAO}>
-                    {r.rotuloAcao}
-                  </Link>
-                </Card>
-              ))}
-            </div>
-          )}
-        </Section>
-
-        <Section title="Oportunidades comerciais">
-          {oportunidades.leadsQuentes.length === 0 &&
-          oportunidades.leadsParados.length === 0 &&
-          oportunidades.followUpsHoje.length === 0 ? (
-            <EmptyState message="Nenhuma oportunidade comercial pedindo atenção agora." />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-3">
-              {oportunidades.leadsQuentes.length > 0 && (
-                <Card className="p-4 shadow-none">
-                  <p className="text-sm font-medium text-zinc-900">
-                    🔥 {oportunidades.leadsQuentes.length} oportunidade
-                    {oportunidades.leadsQuentes.length > 1 ? "s" : ""} quente
-                    {oportunidades.leadsQuentes.length > 1 ? "s" : ""}
-                  </p>
-                  <Link href="/pipeline?filtro=quentes" className={CLASSE_BOTAO_CARTAO}>
-                    Ver oportunidades
-                  </Link>
-                </Card>
-              )}
-              {oportunidades.leadsParados.length > 0 && (
-                <Card className="p-4 shadow-none">
-                  <p className="text-sm font-medium text-zinc-900">
-                    ⚠️ {oportunidades.leadsParados.length} lead
-                    {oportunidades.leadsParados.length > 1 ? "s" : ""} sem contato há mais de 48h
-                  </p>
-                  <Link href="/pipeline?filtro=parados" className={CLASSE_BOTAO_CARTAO}>
-                    Ver leads parados
-                  </Link>
-                </Card>
-              )}
-              {oportunidades.followUpsHoje.length > 0 && (
-                <Card className="p-4 shadow-none">
-                  <p className="text-sm font-medium text-zinc-900">
-                    📅 {oportunidades.followUpsHoje.length} follow-up
-                    {oportunidades.followUpsHoje.length > 1 ? "s" : ""} vence
-                    {oportunidades.followUpsHoje.length > 1 ? "m" : ""} hoje
-                  </p>
-                  <Link href="/pipeline?filtro=follow_up_hoje" className={CLASSE_BOTAO_CARTAO}>
-                    Ver follow-ups
-                  </Link>
-                </Card>
-              )}
-            </div>
-          )}
-        </Section>
-
-        <Section title="Visão Geral">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <StatCard label="Leads ativos" value={leadsAtivos.length} />
-            <StatCard label="Clientes" value={clientes.length} />
-            <StatCard label="Projetos ativos" value={projetosAtivos.length} />
-            <StatCard label="Conteúdos em produção" value={conteudosEmProducao.length} />
-            <StatCard label="Conteúdos publicados" value={conteudosPublicados.length} />
-            <StatCard label="Alertas ativos" value={alertasAtivos.length} />
-          </div>
-        </Section>
-
-        <Section title="Agenda do dia">
-          {itensDoDia.length === 0 ? (
-            <EmptyState message="Nenhum item de agenda hoje." />
-          ) : (
-            <ul className="space-y-2 text-sm text-zinc-700">
-              {itensDoDia.map((item) => (
-                <li key={item.id} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
-                  {item.dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} ·{" "}
-                  {descreverItemDeAgenda(item)} · {ROTULOS_STATUS_ITEM[item.status] ?? item.status}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-
-        <Section
-          title={`Alertas ativos (${alertasAtivos.length})`}
-          action={
-            <Link href="/alertas" className="text-sm text-zinc-500 hover:text-zinc-900">
-              Ver todos
-            </Link>
-          }
-        >
-          {alertasAtivos.length === 0 ? (
-            <EmptyState message="Nenhum alerta ativo — tudo em dia." />
-          ) : (
-            <ul className="space-y-2 text-sm text-zinc-700">
-              {alertasAtivos.map((a) => (
-                <li key={a.id} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
-                  <Badge variant="danger">{ROTULOS_TIPO_ALERTA[a.tipo] ?? a.tipo}</Badge>{" "}
-                  <span className="ml-1">{a.condicaoGatilho}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-
-        <Section title="Pendências da Inbox">
-          {pendenciasInbox.length === 0 ? (
-            <EmptyState message="Nenhuma pendência — Inbox em dia." />
-          ) : (
-            <p className="text-sm text-zinc-700">
-              {pendenciasInbox.length} registro(s) aguardando revisão de sugestão de IA.{" "}
-              <Link href="/inbox" className="text-zinc-900 underline">
-                Revisar agora
-              </Link>
-            </p>
-          )}
-        </Section>
-
-        <Section title="Distribuição de pilares">
-          {desviosRelevantes.length === 0 ? (
-            <EmptyState message="Distribuição de conteúdo alinhada à meta." />
-          ) : (
-            <ul className="space-y-2 text-sm text-zinc-700">
-              {desviosRelevantes.map((d) => (
-                <li key={d.pilarId} className="border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
-                  {d.nome}: desvio de {d.desvio > 0 ? "+" : ""}
-                  {d.desvio}% em relação à meta
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
+            )}
+          </Section>
+        </div>
       </div>
     </div>
   );

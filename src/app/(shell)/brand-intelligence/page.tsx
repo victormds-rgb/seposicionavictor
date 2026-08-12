@@ -2,10 +2,19 @@ import { listarDocumentosOficiais, listarChunksDoDocumento } from "@/brand_intel
 import { criarDependenciasDeBrandIntelligence } from "@/brand_intelligence/infrastructure/composicao";
 import { TIPOS_DOCUMENTO } from "@/brand_intelligence/domain/documento-oficial";
 import { registrarDocumentoAction, sincronizarAgoraAction } from "./actions";
-import { SubmitButton } from "../_components/submit-button";
+import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select-field";
+import { Button } from "@/components/ui/button";
 
 /**
- * Brand Intelligence — Sprint 8.
+ * Brand Intelligence — Sprint 8, redesenhada na Sprint de UX/UI (Fase
+ * 11 — a tela era HTML cru).
  *
  * Lista de documentos com status de sincronização e botão único
  * "sincronizar agora" (UI_UX.md, seção 12) — sem exigir que Victor
@@ -24,6 +33,13 @@ const ROTULOS_TIPO_DOCUMENTO: Record<string, string> = {
   outro: "Outro",
 };
 
+function variantDoStatusIndexacao(status: string): "neutral" | "info" | "warning" | "success" | "danger" {
+  if (status === "indexado") return "success";
+  if (status === "desatualizado") return "warning";
+  if (status === "erro") return "danger";
+  return "neutral";
+}
+
 const ROTULOS_STATUS_INDEXACAO: Record<string, string> = {
   nao_indexado: "Não indexado",
   indexado: "Indexado",
@@ -37,67 +53,72 @@ export default async function BrandIntelligencePage() {
 
   return (
     <div>
-      <h1>Brand Intelligence</h1>
+      <PageHeader
+        title="Brand Intelligence"
+        description="Documentos oficiais da marca, sincronizados e indexados para a IA consultar."
+      />
 
-      <section aria-labelledby="novo-documento">
-        <h2 id="novo-documento">Registrar Documento Oficial</h2>
-        <form action={registrarDocumentoAction}>
-          <label>
-            Título
-            <input type="text" name="titulo" required />
-          </label>
-          <label>
-            ID do arquivo no Google Drive
-            <input type="text" name="googleDriveFileId" required />
-          </label>
-          <label>
-            Tipo
-            <select name="tipoDocumento" defaultValue="sistema_operacional_marca">
+      <div className="space-y-6">
+        <Section title="Registrar documento oficial">
+          <form action={registrarDocumentoAction} className="max-w-md space-y-4">
+            <FormField label="Título">
+              <Input type="text" name="titulo" required />
+            </FormField>
+            <FormField label="ID do arquivo no Google Drive">
+              <Input type="text" name="googleDriveFileId" required />
+            </FormField>
+            <SelectField label="Tipo" name="tipoDocumento" defaultValue="sistema_operacional_marca">
               {TIPOS_DOCUMENTO.map((t) => (
                 <option key={t} value={t}>
                   {ROTULOS_TIPO_DOCUMENTO[t] ?? t}
                 </option>
               ))}
-            </select>
-          </label>
-          <SubmitButton>Registrar</SubmitButton>
-        </form>
-      </section>
+            </SelectField>
+            <Button type="submit">Registrar</Button>
+          </form>
+        </Section>
 
-      <section aria-labelledby="documentos">
-        <h2 id="documentos">Documentos ({documentos.length})</h2>
-        {documentos.length === 0 && <p>Nenhum documento oficial registrado ainda.</p>}
-        <ul>
-          {await Promise.all(
-            documentos.map(async (doc) => {
-              const chunks = await listarChunksDoDocumento(doc.id, {
-                documentoChunkRepository: deps.documentoChunkRepository,
-              });
+        <Section title={`Documentos (${documentos.length})`}>
+          {documentos.length === 0 && <EmptyState message="Nenhum documento oficial registrado ainda." />}
+          <ul className="space-y-3">
+            {await Promise.all(
+              documentos.map(async (doc) => {
+                const chunks = await listarChunksDoDocumento(doc.id, {
+                  documentoChunkRepository: deps.documentoChunkRepository,
+                });
 
-              return (
-                <li key={doc.id}>
-                  <p>
-                    <strong>{doc.titulo}</strong> ·{" "}
-                    {ROTULOS_TIPO_DOCUMENTO[doc.tipoDocumento] ?? doc.tipoDocumento} ·{" "}
-                    <em>{ROTULOS_STATUS_INDEXACAO[doc.statusIndexacao] ?? doc.statusIndexacao}</em>
-                  </p>
-                  <p>
-                    Última sincronização:{" "}
-                    {doc.ultimaSincronizacao
-                      ? doc.ultimaSincronizacao.toLocaleString("pt-BR")
-                      : "nunca sincronizado"}{" "}
-                    · {chunks.length} trecho(s) indexado(s)
-                  </p>
-                  <form action={sincronizarAgoraAction}>
-                    <input type="hidden" name="documentoId" value={doc.id} />
-                    <SubmitButton>Sincronizar agora</SubmitButton>
-                  </form>
-                </li>
-              );
-            })
-          )}
-        </ul>
-      </section>
+                return (
+                  <li key={doc.id}>
+                    <Card className="p-4 shadow-none">
+                      <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-900">
+                        <strong className="font-medium">{doc.titulo}</strong>
+                        <span className="text-zinc-500">
+                          {ROTULOS_TIPO_DOCUMENTO[doc.tipoDocumento] ?? doc.tipoDocumento}
+                        </span>
+                        <Badge variant={variantDoStatusIndexacao(doc.statusIndexacao)}>
+                          {ROTULOS_STATUS_INDEXACAO[doc.statusIndexacao] ?? doc.statusIndexacao}
+                        </Badge>
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {doc.ultimaSincronizacao
+                          ? `Última sincronização: ${doc.ultimaSincronizacao.toLocaleString("pt-BR")}`
+                          : "Nunca sincronizado"}{" "}
+                        · {chunks.length} trecho(s) indexado(s)
+                      </p>
+                      <form action={sincronizarAgoraAction} className="mt-3">
+                        <input type="hidden" name="documentoId" value={doc.id} />
+                        <Button type="submit" variant="secondary">
+                          Sincronizar agora
+                        </Button>
+                      </form>
+                    </Card>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        </Section>
+      </div>
     </div>
   );
 }

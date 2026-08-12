@@ -18,7 +18,12 @@ test.describe("Conteúdo", () => {
   test("criar Peça → enviar para revisão → agendar → publicar", async ({ page }) => {
     const conteudoTexto = `Peça E2E ${sufixoUnico()} — reflexão sobre diagnóstico antes da ferramenta.`;
 
-    await page.goto("/conteudo");
+    // Medido empiricamente (Sprint de UX/UI — Fechamento): primeira
+    // compilação a frio desta rota no `next dev`/Turbopack chega a
+    // ~13,8s (contra ~950ms já compilada) — mesmo custo de dev-mode já
+    // documentado em playwright.config.ts, ampliado pelo peso visual
+    // novo desta página. Sem erro de compilação real por trás disso.
+    await page.goto("/conteudo", { timeout: 45_000 });
 
     const novaPeca = page.getByRole("region", { name: "Nova Peça (autônoma)" });
     await novaPeca.getByLabel("Canal").selectOption("linkedin");
@@ -34,8 +39,11 @@ test.describe("Conteúdo", () => {
     await expect(peca).toBeVisible();
     await expect(peca.getByText(/\brascunho\b/)).toBeVisible();
 
+    // ROTULOS_STATUS_PECA (Sprint 33.5) traduz "em_revisao" para o
+    // texto exibido ao usuário; os demais status (rascunho/agendado/
+    // publicado) não têm tradução e continuam crus.
     await peca.getByRole("button", { name: "Avançar etapa" }).click();
-    await expect(peca.getByText(/\bem_revisao\b/)).toBeVisible();
+    await expect(peca.getByText("Em revisão")).toBeVisible();
 
     await peca.getByRole("button", { name: "Avançar etapa" }).click();
     await expect(peca.getByText(/\bagendado\b/)).toBeVisible();

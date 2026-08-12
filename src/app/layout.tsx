@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+
+// Tipografia — Fase 2 (Redesign de Produto). Geist para UI/títulos,
+// Geist Mono reservado a métricas/números/timestamps/IDs (uso
+// pontual, não geral — ver proposta de identidade visual).
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 // Layout raiz mínimo — Sprint 0 (Fundação).
 // Navegação global, shell da aplicação e Dashboard pertencem à Sprint 1
@@ -8,7 +15,7 @@ import "./globals.css";
 // Sprint 32 — Rebranding para "MeuCMO": só identidade visual/textos.
 // Nenhuma rota, domínio, nome de projeto Vercel ou repositório muda —
 // ver relatório da Sprint 32.
-const NOME_PRODUTO = "MeuCMO";
+const NOME_PRODUTO = "FDE";
 const SUBTITULO_PRODUTO = "Seu Diretor de Marketing movido por IA.";
 
 export const metadata: Metadata = {
@@ -40,7 +47,13 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
+    // As variáveis --font-geist-sans/--font-geist-mono ficam
+    // disponíveis no documento inteiro, mas isso NÃO muda a fonte
+    // renderizada de nenhuma página existente — nada hoje referencia
+    // essas variáveis. Só os componentes novos (`font-geist`/
+    // `font-geist-mono`, ver tailwind.config.ts) e a página de
+    // demonstração as usam. Aplicar às 11 páginas é a Fase 2-F.
+    <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>{children}</body>
     </html>
   );

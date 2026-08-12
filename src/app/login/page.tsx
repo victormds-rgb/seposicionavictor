@@ -26,7 +26,7 @@ export default async function LoginPage({
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
       <Card className="w-full max-w-sm">
-        <h1 className="text-lg font-semibold text-zinc-900">MeuCMO</h1>
+        <h1 className="text-lg font-semibold text-zinc-900">FDE</h1>
         <p className="mt-1 text-sm text-zinc-500">Seu Diretor de Marketing movido por IA.</p>
 
         <form action={signIn} className="mt-6 space-y-4">
